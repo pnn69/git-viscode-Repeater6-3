@@ -301,9 +301,8 @@ void i2c_task(void *arg) {
             IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
             IOstatus = IOstatus & 0x3F;
             IOstatus = 0;
-            IOstatus = IOstatus | (ADCadress[adc_select]); // set mux to selected channel
-            i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX,
-                             IOstatus); // update IO extender
+            IOstatus = IOstatus | (ADCadress[adc_select]);         // set mux to selected channel
+            i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
 
             // ESP_LOGI(TAG, "VoltageFAN %f",voltageFAN);
             // ESP_LOGI(TAG, "ADC Raw %4d  %4d %4d %4d %4d
