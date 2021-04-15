@@ -46,6 +46,7 @@ static float voltage = 0;
 static float tmp = 0;
 static uint8_t ch;
 static uint8_t lastkey;
+static bool last_approx;
 float datalog = 0;
 void main_task(void *parameter) {
     ESP_LOGI("Main", "Smartbox HW:%s SW:%s NVM:%d", HW_VERSION, SW_VERSION, NVM_VERSION);
@@ -57,6 +58,12 @@ void main_task(void *parameter) {
     ESP_LOGI(TAG, "Output enabled");
 
     while (1) {
+        if (last_approx != approx) {
+            //ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
+            last_approx = approx;
+            gpio_set_level(ledESP,!approx);
+        }
+
         switch (mode) {
             //**************************************************************************************************
             // modeHumidifier 1
@@ -189,7 +196,8 @@ void main_task(void *parameter) {
                     ESP_LOGI(TAG, "T1   %03.02fC ", new_ntc_sample5v(4095 - ADC[0]));
                     ESP_LOGI(TAG, "T2   %03.02fC ", new_ntc_sample5v(4095 - ADC[1]));
                     ESP_LOGI(TAG, "T3   %03.02fC ", new_ntc_sample5v(4095 - ADC[2]));
-                }
+                    ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
+                    calibrate(ADC[11],ADC[12]);                }
 
                 if (ch == 'N') {
                     CalibrateNTC();
@@ -517,6 +525,8 @@ void app_main() {
     vTaskDelay(50);
     init_timer(period); // start timer
     xTaskCreate(RS487_task, "RS487_task", 2024 * 2, NULL, 5, NULL);
+    gpio_pad_select_gpio(ledESP);
+    gpio_set_direction(ledESP, GPIO_MODE_OUTPUT);
     ESP_LOGI(TAG, "Setup done!");
     xTaskCreate(main_task, "main_task", 2024, NULL, 0, NULL);
 }

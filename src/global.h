@@ -47,29 +47,30 @@
 #define POS_KEY1 (4)
 #define POS_KEY2 (3)
 
-#define ledFan 0     // pos led Fan IO extender
-#define ledRH 1      // pos led RH IO extender
-#define ledHeater 2  // pos led Heater IO extender
+#define ledFan 0        // pos led Fan IO extender
+#define ledRH 1         // pos led RH IO extender
+#define ledHeater 2     // pos led Heater IO extender
+#define ledESP GPIO_NUM_2 // Led mounted on pcb at pin GPIO2
 
-#define AC_pin1 32  // Output to Opto Triac1
-#define AC_pin2 33  // Output to Opto Triac2
-#define AC_pin3 23  // Output to Opto Triac3
+#define AC_pin1 32 // Output to Opto Triac1
+#define AC_pin2 33 // Output to Opto Triac2
+#define AC_pin3 23 // Output to Opto Triac3
 
-#define ANL1adr 0x10   // Analog input P1
-#define ANL2adr 0x20   // Analog input P2
-#define ANL3adr 0x30   // Analog input P3
-#define ANL4adr 0x01   // Analog input P4
-#define ANL5adr 0x02   // Analog input P5
-#define ANL6adr 0x04   // Analog input P6
-#define ANL7adr 0x05   // Analog input P7
-#define ANL8adr 0x07   // Analog input P8
-#define FANadr 0x08    // Analog Fan
-#define TEMPadr 0x00   // Analog Temp
-#define RHadr 0x18     // Analog RH
-#define OvREF 0x03     // 0V Ref
-#define v125REF 0x06   // 1.25V Ref
-#define OvREF1 0x28    // 0V Ref
-#define v125REF1 0x38  // 1.25V Ref
+#define ANL1adr 0x10  // Analog input P1
+#define ANL2adr 0x20  // Analog input P2
+#define ANL3adr 0x30  // Analog input P3
+#define ANL4adr 0x01  // Analog input P4
+#define ANL5adr 0x02  // Analog input P5
+#define ANL6adr 0x04  // Analog input P6
+#define ANL7adr 0x05  // Analog input P7
+#define ANL8adr 0x07  // Analog input P8
+#define FANadr 0x08   // Analog Fan
+#define TEMPadr 0x00  // Analog Temp
+#define RHadr 0x18    // Analog RH
+#define OvREF 0x03    // 0V Ref
+#define v125REF 0x06  // 1.25V Ref
+#define OvREF1 0x28   // 0V Ref
+#define v125REF1 0x38 // 1.25V Ref
 
 #define modeHumidifier 1
 #define modeFanAuxBoxRetro 2

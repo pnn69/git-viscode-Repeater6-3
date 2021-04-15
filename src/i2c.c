@@ -327,8 +327,8 @@ void i2c_task(void *arg) {
                 key0 = (bool)(IOstatus & (1UL << POS_KEY0)); // get IO status
                 key1 = (bool)(IOstatus & (1UL << POS_KEY1)); // get IO status
                 key2 = (bool)(IOstatus & (1UL << POS_KEY2)); // get IO status
-
                 approx = (bool)(IOstatus & (1UL << approxPin));             // get IO status
+
                 IOstatus ^= (-!statFan ^ IOstatus) & (1UL << ledFan);       // set led out1
                 IOstatus ^= (-!statRH ^ IOstatus) & (1UL << ledRH);         // set led out2
                 IOstatus ^= (-!statHeater ^ IOstatus) & (1UL << ledHeater); // set led out3

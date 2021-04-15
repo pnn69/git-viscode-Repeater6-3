@@ -10,6 +10,7 @@ double new_ntc_sample(int);
 float new_ntc_sample5v(float);
 void initNTC_offset(void);
 void CalibrateNTC(void);
+void calibrate(int countl, int counth);
 
 
 #endif /* NTC_H_ */
