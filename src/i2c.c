@@ -336,8 +336,7 @@ void i2c_task(void *arg) {
                 IOstatus ^= (-!0 ^ IOstatus) & (1UL << POS_KEY0);           // Set bit KEY0
                 IOstatus ^= (-!0 ^ IOstatus) & (1UL << POS_KEY1);           // Set bit KEY1
                 IOstatus ^= (-!0 ^ IOstatus) & (1UL << POS_KEY2);           // Set bit KEY2
-                i2c_write_device(I2C0_EXPANDER_ADDRESS_KEY,
-                                 IOstatus); // update IO extender
+                i2c_write_device(I2C0_EXPANDER_ADDRESS_KEY, IOstatus);      // update IO extender
                 if (approx == true)
                     aproxtimer = 600;
                 if (FrontOled) {
