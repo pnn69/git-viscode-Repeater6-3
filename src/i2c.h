@@ -39,6 +39,7 @@ extern int TF0, R0, TF1, R1, TF2, R2;
 
 extern int aproxtimer;
 extern bool approx;
+int ADC_256[15];
 
 void i2c_task(void* arg);
 float fan_calcPercentageToVoltage(float measP);

@@ -59,9 +59,9 @@ void main_task(void *parameter) {
 
     while (1) {
         if (last_approx != approx) {
-            //ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
+            // ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
             last_approx = approx;
-            gpio_set_level(ledESP,!approx);
+            gpio_set_level(ledESP, !approx);
         }
 
         switch (mode) {
@@ -185,19 +185,19 @@ void main_task(void *parameter) {
                 if (ch == '2') {
                     printf("\r\n");
                     for (int tel = 0; tel < 15; tel++) {
-                        ESP_LOGI(TAG, "P%02d RAW %04d %.3fV", tel, ADC[tel], ((float)(ADC[tel] - ADC[OvREF]) * 2.2 / 2048));
+                        ESP_LOGI(TAG, " nr:%2d ADC:%4d   ADC_256_raw:%6d", tel, ADC[tel], ADC_256[tel]);
                     }
-                    ESP_LOGI(TAG, "FAN   %03.02fV ", voltageFAN);
-                    ESP_LOGI(TAG, "HEAT  %03.02fV ", voltageHEAT);
-                    ESP_LOGI(TAG, "RH    %03.02fV\r\n", voltageRH);
+                    // ESP_LOGI(TAG, "FAN   %03.02fV ", voltageFAN);
+                    // ESP_LOGI(TAG, "HEAT  %03.02fV ", voltageHEAT);
+                    // ESP_LOGI(TAG, "RH    %03.02fV\r\n", voltageRH);
                     ESP_LOGI(TAG, "T1   %d Raw", 4095 - ADC[0]);
                     ESP_LOGI(TAG, "T2   %d Raw", 4095 - ADC[1]);
                     ESP_LOGI(TAG, "T3   %d Raw", 4095 - ADC[2]);
-                    ESP_LOGI(TAG, "T1   %03.02fC ", new_ntc_sample5v(4095 - ADC[0]));
-                    ESP_LOGI(TAG, "T2   %03.02fC ", new_ntc_sample5v(4095 - ADC[1]));
-                    ESP_LOGI(TAG, "T3   %03.02fC ", new_ntc_sample5v(4095 - ADC[2]));
-                    ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
-                    calibrate(ADC[11],ADC[12]);                }
+                    // ESP_LOGI(TAG, "T1   %03.02fC ", new_ntc_sample5v(4095 - ADC[0]));
+                    // ESP_LOGI(TAG, "T2   %03.02fC ", new_ntc_sample5v(4095 - ADC[1]));
+                    // ESP_LOGI(TAG, "T3   %03.02fC ", new_ntc_sample5v(4095 - ADC[2]));
+                    // ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
+                }
 
                 if (ch == 'N') {
                     CalibrateNTC();

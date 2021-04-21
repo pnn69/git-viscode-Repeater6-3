@@ -14,28 +14,17 @@
 
 #define DEFAULT_VREF 1100 // Use adc2_vref_to_gpio() to obtain a better estimate
 #define NO_OF_SAMPLES 64  // Multisampling
-// static const adc_atten_t atten = ADC_ATTEN_DB_2_5;
-static const adc_atten_t atten = ADC_ATTEN_DB_11;
+static const adc_atten_t atten = ADC_ATTEN_DB_2_5;
+//static const adc_atten_t atten = ADC_ATTEN_DB_11;
 // static const adc_atten_t atten = ADC_ATTEN_DB_6;
 static const adc_channel_t channelFAN = ADC_CHANNEL_3; // ADC1 CH2
 static const adc_channel_t channelMUX = ADC_CHANNEL_3; // ADC1 CH3
+const int vref = 2.495;
+static esp_adc_cal_characteristics_t adc_chars;
 
 void adc_config(void) {
-    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_TP) == ESP_OK) {
-        ESP_LOGI(TAG, "eFuse Two Point: Supported");
-    } else {
-        ESP_LOGI(TAG, "eFuse Two Point: NOT supported");
-    }
-
-    // Check Vref is burned into eFuse
-    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF) == ESP_OK) {
-        ESP_LOGI(TAG, "eFuse Vref: Supported\n");
-    } else {
-        ESP_LOGI(TAG, "eFuse Vref: NOT supported");
-    }
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(channelFAN, atten);
-    adc1_config_channel_atten(channelMUX, atten);
+    adc1_config_channel_atten(ADC_CHANNEL_3, atten);
 }
 
 float AdcFanRaw(void) {
@@ -97,3 +86,35 @@ void CalibrateV(void) {
     ch = 0xFF;
     ESP_LOGI(TAG, "Calibration done!!!");
 }
+
+int read_adc_256() {
+    const int OVERSAMPLE_COUNT = 8; // 2^n, 1..256
+    static int buf[8];
+
+    int64_t sum = 0;
+    for (int i = 0; i < OVERSAMPLE_COUNT; i++) {
+        buf[i] = adc1_get_raw(ADC1_CHANNEL_3); // gpio39, sensor vn
+        sum += buf[i];
+        vTaskDelay(1); // 1ms apart, so 8ms sample time
+    }
+    int avg = sum * (256 / OVERSAMPLE_COUNT); // just a shift
+    return avg;
+}
+// input is adc counts*256
+// output is mv*10
+// this is the voltage on the mux inputs
+// it is divided/2 before it goes to the adc, but that is all calibrated away
+static float A;
+static float B;
+
+void calibrateScaleX(int countl, int counth) {
+    const float refl = 3811.8;          // 0,382
+    const float refh = (24950.0) / 2.0; // 1,25
+    A = (refh - refl) / (counth - countl);
+    B = refh - A * counth;
+    //ESP_LOGW(TAG, "Calibrate %d-%d A=%f, B=%f", countl, counth, A, B);
+}
+
+int scaleX(int avg) { return A * (float)avg + B; }
+
+int convert_adc256_to_mv(int val) { return esp_adc_cal_raw_to_voltage((val + 128) / 256, &adc_chars); }

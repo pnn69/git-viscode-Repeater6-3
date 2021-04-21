@@ -25,6 +25,7 @@ int ADCadress[15][2] = {{ANL1adr, 1}, {ANL2adr, 1}, {ANL3adr, 0}, {ANL4adr, 0},
                         {v125REF, 0}, {OvREF1, 0},  {v125REF1, 0}};
                         */
 int ADCadress[15] = {ANL1adr, ANL2adr, ANL3adr, ANL4adr, ANL5adr, ANL6adr, ANL7adr, ANL8adr, FANadr, TEMPadr, RHadr, OvREF, v125REF, OvREF1, v125REF1};
+int ADC_256[15];
 
 extern bool buzzerOnOff;
 bool approx = false;
@@ -143,11 +144,12 @@ void i2c_task(void *arg) {
     ssd1306_init();
     ssd1306_display_clear();
     // IOstatus = 0xff;
-    IOstatus = 0x00;
+    IOstatus = 0xCF; //Only cnannel 1 and 2 are ntc 
     i2c_write_device(I2C0_EXPANDER_ADDRESS_NTC, IOstatus); // update IO extender
 
     aproxtimer = 600;
     float adcsamp = 0;
+    int adc = 0;
 
 #define avrlen 6
     float NTC1avr[avrlen] = {0};
@@ -155,120 +157,54 @@ void i2c_task(void *arg) {
     float t = 0;
     int pNTC1 = 0;
     int pNTC0 = 0;
+    int tmp = 0;
+    int res = 0;
+
+    calibrateScaleX(86080, 429152);
 
     for (;;) {
         i2cblink();
         if (adcstamp + pdMS_TO_TICKS(1) <= xTaskGetTickCount()) {
             adcstamp = xTaskGetTickCount();
-            adcsamp = AdcSampRaw();
-            ADC[adc_select] = adcsamp;
-            adcsamp = ReadVoltage(adcsamp) * 1000;
-
+            ADC[adc_select] = AdcSampRaw();
+            ADC_256[adc_select] = read_adc_256();
             switch (adc_select) {
             case 0:
-                /*
-                adcsamp = ADCmV[adc_select] / 1000;
-                if (adcsamp > 1.0) {
-                  WaterAlarm = true;
-                } else {
-                  WaterAlarm = false;
-                }
-                // ESP_LOGI(TAG, "P3 Vin:%.2fV ",adcsamp);
-                */
+                ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
+                NTC[adc_select] = (float)tmp / 1000;
+                // ESP_LOGI(TAG, "T:%d  R:%d", tmp, res);
+                ESP_LOGI(TAG, "Temp:%02.2f ", NTC[adc_select]);
                 break;
 
             case 1:
-                /*
-                  NTC1avr[pNTC1++] = ADCmV[adc_select];
-                  if (pNTC1 >= avrlen) pNTC1 = 0;
-                  if (xSemaphoreTake(xSemaphoreNTC, 10 == pdTRUE)) {
-                    float avr = 0;
-                    for (int i = 0; i < avrlen; i++) {
-                      avr += NTC1avr[i];
-                    }
-                    avr = avr / avrlen;
-                    NTC[1] = new_ntc_sample5v(avr) + NTC_offset[1];
-                    xSemaphoreGive(xSemaphoreNTC);
-                  }
-                  // ESP_LOGI(TAG, "P2 Vin:%.2fV ",adcsamp*VgainRJ45/1000);
-                  */
+                ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
+                NTC[adc_select] = (float)tmp / 1000;
+                // ESP_LOGI(TAG, "T:%d  R:%d", tmp, res);
+                ESP_LOGI(TAG, "Temp:%02.2f ", NTC[adc_select]);
                 break;
             case 2:
-                /*
-                  NTC0avr[pNTC0++] = ADCmV[adc_select];
-                  if (pNTC0 >= avrlen) pNTC0 = 0;
-                  if (xSemaphoreTake(xSemaphoreNTC, 10 == pdTRUE)) {
-                    float avr = 0;
-                    for (int i = 0; i < avrlen; i++) {
-                      avr += NTC0avr[i];
-                    }
-                    avr = avr / avrlen;
-                    NTC[0] = new_ntc_sample5v(avr) + NTC_offset[0];
-                    xSemaphoreGive(xSemaphoreNTC);
-                  }
-                  // ESP_LOGI(TAG, "P1 Vin:%.2fV ",adcsamp*VgainRJ45/1000);
-                  */
+                    t = map(ADC[adc_select], 334, 3195, 0, 12);
+                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
                 break;
 
             case 3:
-                /*
-                  adcsamp = ADCmV[adc_select] / 1000;
-                  if (adcsamp > 1.0) {
-                    DayNight = true;
-                  }
-                  if (adcsamp < 0.8) {
-                    DayNight = false;
-                  }
-                  // ESP_LOGI(TAG,"P4 Vin:%.2fV %s",adcsamp,(DayNight==1) ?
-                  // "Day":"Night"); ESP_LOGI(TAG, "P4 Vin:%.2fV ",adcsamp);
-                  */
+                    t = map(ADC[adc_select], 334, 3195, 0, 12);
+                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
                 break;
             case 4:
-                /*
-                  t = ADCmV[adc_select] / 1000;
-                  if (t > 0.25) {
-                    PressLow =
-                        map(t, 0.5, 4.5, 0, 10);  // inp,Vmin,Vmax,Barrmin,Barrmax
-                  } else {
-                    PressLow = NAN;  // no pressure sensor mounted
-                  }
-                  // ESP_LOGI(TAG, "P5 Vin:%.2fV ",t);
-                  */
+                    t = map(ADC[adc_select], 334, 3195, 0, 12);
+                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
                 break;
             case 5:
-                /*
-                  t = ADCmV[adc_select] / 1000;
-                  if (t > 0.25) {
-                    PressHigh =
-                        map(t, 0.5, 4.5, 0, 10);  // inp,Vmin,Vmax,Barrmin,Barrmax
-                  } else {
-                    PressHigh = NAN;  // no pressure sensor mounted
-                  }
-                  // ESP_LOGI(TAG, "P6 Vin:%.2fV ",t);
-                  */
+                    t = map(ADC[adc_select], 446, 3195, 0, 12);
+                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
                 break;
-            case 6:
-                /*
-                  if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    voltageRH = ADCmV[adc_select] * VgainRJ12 / 1000;
-                    xSemaphoreGive(xSemaphoreVIN);
-                  }
-                  break;
 
-                case 7:
-                  if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    voltageHEAT = ADCmV[adc_select] * VgainRJ12 / 1000;  // result in
-                                                                         // mV;
-                    xSemaphoreGive(xSemaphoreVIN);
-                  }
-                  */
-                break;
             case 8:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    // voltageFAN = map(ADC[adc_select], 346, 2303, 0, 12);
-                    // voltageFAN = map(ADC[adc_select], 55, 1155, 0, 12); //
-                    // ADC_ATTEN_DB_11
-                    voltageFAN = map(ADC[adc_select], 184, 2242, 0, 12); // ADC_ATTEN_DB_6
+                    voltageFAN = map(ADC[adc_select], 334, 3195, 0, 12);
+                    ESP_LOGI(TAG, "Vfan:%.2fV ",voltageFAN);
+
                     if (voltageFAN > CompressorOnVoltage) {
                         CompressorOn = false;
                     } else {
@@ -279,21 +215,20 @@ void i2c_task(void *arg) {
                 break;
             case 9:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    // voltageFAN = map(ADC[adc_select], 346, 2303, 0, 12);
-                    // voltageFAN = map(ADC[adc_select], 55, 1155, 0, 12); //
-                    // ADC_ATTEN_DB_11
-                    voltageHEAT = map(ADC[adc_select], 184, 2242, 0, 12); // ADC_ATTEN_DB_6
+                    voltageHEAT = map(ADC[adc_select], 334, 3195, 0, 12);
+                    ESP_LOGI(TAG, "Vheat:%.2fV ", voltageHEAT);
                     xSemaphoreGive(xSemaphoreVIN);
                 }
                 break;
             case 10:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    // voltageFAN = map(ADC[adc_select], 346, 2303, 0, 12);
-                    // voltageFAN = map(ADC[adc_select], 55, 1155, 0, 12); //
-                    // ADC_ATTEN_DB_11
-                    voltageRH = map(ADC[adc_select], 184, 2242, 0, 12); // ADC_ATTEN_DB_6
+                    voltageRH = map(ADC[adc_select], 334, 3195, 0, 12);
+                    ESP_LOGI(TAG, "Vrh:%.2fV ", voltageRH);
                     xSemaphoreGive(xSemaphoreVIN);
                 }
+                break;
+            case 14:
+                calibrateScaleX(ADC_256[13], ADC_256[14]);
                 break;
             }
             if (adc_select++ > 15)
@@ -301,7 +236,8 @@ void i2c_task(void *arg) {
             IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
             IOstatus = IOstatus & 0x3F;
             IOstatus = 0;
-            IOstatus = IOstatus | (ADCadress[adc_select]);         // set mux to selected channel
+            IOstatus = IOstatus | (ADCadress[adc_select]); // set mux to selected channel
+            // IOstatus = IOstatus | (ADCadress[0]);         // set mux to selected channel
             i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
 
             // ESP_LOGI(TAG, "VoltageFAN %f",voltageFAN);
@@ -324,10 +260,10 @@ void i2c_task(void *arg) {
                 statHeater = false;
             if (FrontIO) {
                 IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_KEY);
-                key0 = (bool)(IOstatus & (1UL << POS_KEY0)); // get IO status
-                key1 = (bool)(IOstatus & (1UL << POS_KEY1)); // get IO status
-                key2 = (bool)(IOstatus & (1UL << POS_KEY2)); // get IO status
-                approx = (bool)(IOstatus & (1UL << approxPin));             // get IO status
+                key0 = (bool)(IOstatus & (1UL << POS_KEY0));    // get IO status
+                key1 = (bool)(IOstatus & (1UL << POS_KEY1));    // get IO status
+                key2 = (bool)(IOstatus & (1UL << POS_KEY2));    // get IO status
+                approx = (bool)(IOstatus & (1UL << approxPin)); // get IO status
 
                 IOstatus ^= (-!statFan ^ IOstatus) & (1UL << ledFan);       // set led out1
                 IOstatus ^= (-!statRH ^ IOstatus) & (1UL << ledRH);         // set led out2

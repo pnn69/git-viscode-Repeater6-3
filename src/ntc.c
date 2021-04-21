@@ -17,7 +17,7 @@
 #include "struckt.h"
 
 #define TAG "NTC"
-float NTC[6];
+float NTC[8];
 
 // Steinhart-Hart coeffecients from the spreadsheet.
 double dKelvin = 273.15; // degrees kelvin
@@ -57,7 +57,7 @@ float new_ntc_sample5v(float ntc) {
     return (1.0 / (NVMsystem.dProbeA5v + (NVMsystem.dProbeB5v * dLogdRThermistor) + (NVMsystem.dProbeC5v * dLogdRThermistor * dLogdRThermistor * dLogdRThermistor)) - dKelvin);
 }
 
-#define Resistor 3200
+#define Resistor 20000
 #define ADCcount 5000
 #define T0 0.42
 #define T1 25
@@ -203,12 +203,11 @@ int ntcLookup(int mvi, int *pt, int *pr) { // returns temp and resistance
         if (lut[n + 2] <= mvi)
             break;
     }
-
     int t1 = lut[n - 3 + 0], t0 = lut[n + 0]; // t1 < t0
     int r1 = lut[n - 3 + 1], r0 = lut[n + 1]; // r1 > r0
     int v1 = lut[n - 3 + 2], v0 = lut[n + 2]; // v1 > v0
     *pt = t0 + (t1 - t0) * (mvi - v0) / (v1 - v0);
     *pr = r0 + (r1 - r0) * (mvi - v0) / (v1 - v0);
-    //	LOG("v=%d v1=%d t0=%d t1=%d t=%d r=%d", v0, v1, t0, t1, *pt, *pr);
+    //ESP_LOGW(TAG,"v=%d v1=%d t0=%d t1=%d t=%d r=%d", v0, v1, t0, t1, *pt, *pr);
     return 0;
 }
