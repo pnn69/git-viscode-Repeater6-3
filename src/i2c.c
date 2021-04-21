@@ -133,6 +133,9 @@ void i2c_task(void *arg) {
     ESP_LOGI(TAG, "I2C tasK running... ");
     i2c_master_init(); // start i2c task
     i2cscanner();
+    if (FrontOled) {
+        dispayOnOff = true;
+    }
     WaterAlarm = false;
     adc_select = 0;
 
@@ -144,7 +147,7 @@ void i2c_task(void *arg) {
     ssd1306_init();
     ssd1306_display_clear();
     // IOstatus = 0xff;
-    IOstatus = 0xCF; //Only cnannel 1 and 2 are ntc 
+    IOstatus = 0xCF;                                       // Only cnannel 1 and 2 are ntc
     i2c_write_device(I2C0_EXPANDER_ADDRESS_NTC, IOstatus); // update IO extender
 
     aproxtimer = 600;
@@ -163,47 +166,73 @@ void i2c_task(void *arg) {
     calibrateScaleX(86080, 429152);
 
     for (;;) {
-        i2cblink();
-        if (adcstamp + pdMS_TO_TICKS(1) <= xTaskGetTickCount()) {
+        // i2cblink();
+        if (adcstamp + pdMS_TO_TICKS(150) < xTaskGetTickCount()) {
             adcstamp = xTaskGetTickCount();
+            i2cblink();
             ADC[adc_select] = AdcSampRaw();
             ADC_256[adc_select] = read_adc_256();
             switch (adc_select) {
-            case 0:
-                ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
+
+            case 0: // p1 Tin
+                // ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
+                ntcLookup(scaleX(read_adc_256()), &tmp, &res);
                 NTC[adc_select] = (float)tmp / 1000;
-                // ESP_LOGI(TAG, "T:%d  R:%d", tmp, res);
-                ESP_LOGI(TAG, "Temp:%02.2f ", NTC[adc_select]);
+                ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
                 break;
 
-            case 1:
-                ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
+            case 1: // p2 Tout
+                ntcLookup(scaleX(read_adc_256()), &tmp, &res);
                 NTC[adc_select] = (float)tmp / 1000;
-                // ESP_LOGI(TAG, "T:%d  R:%d", tmp, res);
-                ESP_LOGI(TAG, "Temp:%02.2f ", NTC[adc_select]);
-                break;
-            case 2:
-                    t = map(ADC[adc_select], 334, 3195, 0, 12);
-                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
+                ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
                 break;
 
-            case 3:
-                    t = map(ADC[adc_select], 334, 3195, 0, 12);
-                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
+            case 2: // p3 Waterleakage detection
+                t = map(ADC[adc_select], 334, 3195, 0, 12);
+                ESP_LOGI(TAG, "P%02d %.2fV ", adc_select + 1, t);
+                if (t > 2.0) {
+                    WaterAlarm = true;
+                } else {
+                    WaterAlarm = false;
+                }
                 break;
-            case 4:
-                    t = map(ADC[adc_select], 334, 3195, 0, 12);
-                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
+
+            case 3: // p4 Day/Night detection
+                t = map(ADC[adc_select], 334, 3195, 0, 12);
+                if (t > 2) {
+                    DayNight = true;
+                }
+                if (t < 1.5) {
+                    DayNight = false;
+                }
+                ESP_LOGI(TAG, "P%02d %.2fV %s", adc_select + 1, t, (DayNight == 1) ? "Day" : "Night");
                 break;
-            case 5:
-                    t = map(ADC[adc_select], 446, 3195, 0, 12);
-                    ESP_LOGI(TAG, "V%d:%.2fV ",adc_select+1, t);
+
+            case 4: // p5 Plow
+                t = map(ADC[adc_select], 334, 3195, 0, 12);
+                if (t > 0.5) {
+                    PressLow = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
+                } else {
+                    PressLow = NAN; // no pressure sensor mounted
+                }
+                ESP_LOGI(TAG, "P%02d %.2fV PresLow %02.2fBarr", adc_select + 1, t, PressLow);
+                break;
+
+            case 5: // p6 Phigh
+                t = map(ADC[adc_select], 334, 3195, 0, 12);
+                if (t > 0.5) {
+                    PressHigh = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
+                } else {
+                    PressHigh = NAN; // no pressure sensor mounted
+                }
+                ESP_LOGI(TAG, "P%02d %.2fV PresLow %02.2fBarr", adc_select + 1, t, PressHigh);
+                adc_select = 7;
                 break;
 
             case 8:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
                     voltageFAN = map(ADC[adc_select], 334, 3195, 0, 12);
-                    ESP_LOGI(TAG, "Vfan:%.2fV ",voltageFAN);
+                    // ESP_LOGI(TAG, "P%02d Vfan:%.2fV ", adc_select + 1, voltageFAN);
 
                     if (voltageFAN > CompressorOnVoltage) {
                         CompressorOn = false;
@@ -216,35 +245,37 @@ void i2c_task(void *arg) {
             case 9:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
                     voltageHEAT = map(ADC[adc_select], 334, 3195, 0, 12);
-                    ESP_LOGI(TAG, "Vheat:%.2fV ", voltageHEAT);
+                    // ESP_LOGI(TAG, "P%02d Vheat:%.2fV ", adc_select + 1, voltageHEAT);
                     xSemaphoreGive(xSemaphoreVIN);
                 }
                 break;
             case 10:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
                     voltageRH = map(ADC[adc_select], 334, 3195, 0, 12);
-                    ESP_LOGI(TAG, "Vrh:%.2fV ", voltageRH);
+                    // ESP_LOGI(TAG, "P%02d Vrh:%.2fV \r\n", adc_select + 1, voltageRH);
                     xSemaphoreGive(xSemaphoreVIN);
+                    adc_select = 12;
                 }
                 break;
+            case 13:
+                ADC_256[adc_select] = read_adc_256();
+                break;
             case 14:
+                ADC_256[adc_select] = read_adc_256();
                 calibrateScaleX(ADC_256[13], ADC_256[14]);
+                // ESP_LOGI(TAG, "Calibrating");
                 break;
             }
-            if (adc_select++ > 15)
+            if (adc_select++ >= 14) // next mux position
                 adc_select = 0;
-            IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
-            IOstatus = IOstatus & 0x3F;
-            IOstatus = 0;
-            IOstatus = IOstatus | (ADCadress[adc_select]); // set mux to selected channel
-            // IOstatus = IOstatus | (ADCadress[0]);         // set mux to selected channel
-            i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
 
-            // ESP_LOGI(TAG, "VoltageFAN %f",voltageFAN);
-            // ESP_LOGI(TAG, "ADC Raw %4d  %4d %4d %4d %4d
-            // %4d",ADC[0],ADC[1],ADC[2],ADC[3],ADC[4],ADC[5]);
+            IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
+            IOstatus = IOstatus & 0xc0;
+            IOstatus = IOstatus | (ADCadress[adc_select]);         // set mux to selected channel
+            i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
         }
-        if (timestamp + pdMS_TO_TICKS(100) < xTaskGetTickCount()) {
+
+        if (timestamp + pdMS_TO_TICKS(250) < xTaskGetTickCount()) {
             timestamp = xTaskGetTickCount();
             if (dim1)
                 statFan = true;
@@ -276,73 +307,67 @@ void i2c_task(void *arg) {
                 if (approx == true)
                     aproxtimer = 600;
                 if (FrontOled) {
-                    if (dispayOnOff == false) {
+                    if (dispayOnOff == false && aproxtimer == 600) {
                         ssd1306_display_OnOff(true);
                         OLED_homeScreen();
-                        vTaskDelay(200 / portTICK_PERIOD_MS);
-                        vTaskDelay(50 / portTICK_PERIOD_MS);
                         unlock = 0;
+                        dispayOnOff = true;
 
                     } else {
                         if (dispayOnOff == true && aproxtimer-- == 0) {
                             ssd1306_display_OnOff(false);
+                            dispayOnOff = false;
                         }
                     }
                 }
-            }
-        }
 
-        if (dispayOnOff && FrontOled) {
-            if ((key0 || key1 || key2)) {
-                if (buzzerOnOff) {
-                    IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
-                    IOstatus ^= (-!1 ^ IOstatus) & (1UL << buzzer); // Changing the nth bit to x
-                    i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX,
-                                     IOstatus);                     // update buzzer
-                    IOstatus ^= (-!0 ^ IOstatus) & (1UL << buzzer); // Changing the nth bit to x
-                    i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX,
-                                     IOstatus); // update buzzer
+                if ((key0 || key1 || key2)) {
+                    if (buzzerOnOff) {
+                        IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
+                        IOstatus ^= (-!1 ^ IOstatus) & (1UL << buzzer);        // Changing the nth bit to x
+                        i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update buzzer
+                        IOstatus ^= (-!0 ^ IOstatus) & (1UL << buzzer);        // Changing the nth bit to x
+                        i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update buzzer
+                    }
                 }
-                if (key0) {
-                    ESP_LOGI(TAG, "Key UP");
-                    if (mode == modeHumidifier)
-                        LCD_menu_1(UP);
-                    else if (mode == modeFanAuxBoxRetro)
-                        LCD_menu_2(UP);
-                    else if (mode == modeFanPumpController)
-                        LCD_menu_3(UP);
-                    else if (mode == modeFanPumpBoxRetro)
-                        LCD_menu_4(UP);
-                }
-                if (key1) {
-                    ESP_LOGI(TAG, "Key DOWN");
-                    if (mode == modeHumidifier)
-                        LCD_menu_1(DOWN);
-                    else if (mode == modeFanAuxBoxRetro)
-                        LCD_menu_2(DOWN);
-                    else if (mode == modeFanPumpController)
-                        LCD_menu_3(DOWN);
-                    else if (mode == modeFanPumpBoxRetro)
-                        LCD_menu_4(DOWN);
-                }
-                if (key2) {
-                    ESP_LOGI(TAG, "Key ENTER");
-                    if (mode == modeHumidifier)
-                        LCD_menu_1(ENTER);
-                    else if (mode == modeFanAuxBoxRetro)
-                        LCD_menu_2(ENTER);
-                    else if (mode == modeFanPumpController)
-                        LCD_menu_3(ENTER);
-                    else if (mode == modeFanPumpBoxRetro)
-                        LCD_menu_4(ENTER);
-                }
-                vTaskDelay(pdMS_TO_TICKS(100));
-                key0 = 0;
-                key1 = 0;
-                key2 = 0;
-            } else {
-                if (menustamp + pdMS_TO_TICKS(100) < xTaskGetTickCount()) {
-                    menustamp = xTaskGetTickCount();
+            }
+
+            if (dispayOnOff && FrontOled) {
+                if ((key0 || key1 || key2)) {
+                    if (key0) {
+                        ESP_LOGI(TAG, "Key UP");
+                        if (mode == modeHumidifier)
+                            LCD_menu_1(UP);
+                        else if (mode == modeFanAuxBoxRetro)
+                            LCD_menu_2(UP);
+                        else if (mode == modeFanPumpController)
+                            LCD_menu_3(UP);
+                        else if (mode == modeFanPumpBoxRetro)
+                            LCD_menu_4(UP);
+                    }
+                    if (key1) {
+                        ESP_LOGI(TAG, "Key DOWN");
+                        if (mode == modeHumidifier)
+                            LCD_menu_1(DOWN);
+                        else if (mode == modeFanAuxBoxRetro)
+                            LCD_menu_2(DOWN);
+                        else if (mode == modeFanPumpController)
+                            LCD_menu_3(DOWN);
+                        else if (mode == modeFanPumpBoxRetro)
+                            LCD_menu_4(DOWN);
+                    }
+                    if (key2) {
+                        ESP_LOGI(TAG, "Key ENTER");
+                        if (mode == modeHumidifier)
+                            LCD_menu_1(ENTER);
+                        else if (mode == modeFanAuxBoxRetro)
+                            LCD_menu_2(ENTER);
+                        else if (mode == modeFanPumpController)
+                            LCD_menu_3(ENTER);
+                        else if (mode == modeFanPumpBoxRetro)
+                            LCD_menu_4(ENTER);
+                    }
+                } else {
                     if (mode == modeHumidifier)
                         LCD_menu_1(0);
                     else if (mode == modeFanAuxBoxRetro)
@@ -353,6 +378,12 @@ void i2c_task(void *arg) {
                         LCD_menu_4(0);
                 }
             }
+        }
+        if ((key0 || key1 || key2)) {
+            vTaskDelay(9);
+            key0 = 0;
+            key1 = 0;
+            key2 = 0;
         }
         vTaskDelay(1);
     }

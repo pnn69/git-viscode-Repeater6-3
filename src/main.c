@@ -124,10 +124,10 @@ void main_task(void *parameter) {
                         ESP_LOGI(TAG, "dim1=%d fanspeed=%.0f circulateTimer=%d circulateTime=%d", dim1, Kabel400.fanspeed, Kabel400.circulateTimer * 60, Kabel400.circulateTime);
                         ESP_LOGI(TAG, "WaterAlarm:%s RAW: %d", (WaterAlarm == 1) ? "Alarm" : "no Alarm", ADC[2]);
                         ESP_LOGI(TAG, "LowWaterAlarm:%s RAW: %d", (Kabel400.floatsensorError > 60) ? "Alarm" : "no Alarm", Kabel400.floatsensor);
-                        ESP_LOGI(TAG, "P5 %s RAW: %d", (DayNight == 1) ? "Day" : "Night", ADC[31]);
-                        ESP_LOGI(TAG, "VRH   %03.02fV RAW: %d", voltageRH, ADC[6]);
-                        ESP_LOGI(TAG, "VTMP  %03.02fV RAW: %d", voltageRH, ADC[7]);
-                        ESP_LOGI(TAG, "FAN   %03.02fV RAW: %d", voltageFAN, ADC[7]);
+                        ESP_LOGI(TAG, "P5 %s RAW: %d", (DayNight == 1) ? "Day" : "Night", ADC[3]);
+                        ESP_LOGI(TAG, "VRH   %03.02fV RAW: %d", voltageRH, ADC[8]);
+                        ESP_LOGI(TAG, "VTMP  %03.02fV RAW: %d", voltageRH, ADC[9]);
+                        ESP_LOGI(TAG, "FAN   %03.02fV RAW: %d", voltageFAN, ADC[10]);
                         ESP_LOGI(TAG, "speedfan   %03.02fV", Fan.speedfan);
                         ESP_LOGI(TAG, "speedpump   %03.02fV", Fan.speedpump);
                         ESP_LOGI(TAG, "ADC RAW %d %d %d %d %d %d %d %d", ADC[0], ADC[1], ADC[2], ADC[3], ADC[4], ADC[5], ADC[6], ADC[7]);

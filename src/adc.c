@@ -95,7 +95,7 @@ int read_adc_256() {
     for (int i = 0; i < OVERSAMPLE_COUNT; i++) {
         buf[i] = adc1_get_raw(ADC1_CHANNEL_3); // gpio39, sensor vn
         sum += buf[i];
-        vTaskDelay(1); // 1ms apart, so 8ms sample time
+        //vTaskDelay(1); // 1ms apart, so 8ms sample time
     }
     int avg = sum * (256 / OVERSAMPLE_COUNT); // just a shift
     return avg;
