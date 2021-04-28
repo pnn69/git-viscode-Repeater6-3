@@ -62,7 +62,7 @@ uint8_t i2c_read_device(uint8_t addres) {
     i2c_master_write_byte(cmd, (addres << 1) | READ_BIT, ACK_CHECK_EN);
     i2c_master_read_byte(cmd, &data, ACK_CHECK_DIS);
     i2c_master_stop(cmd);
-    i2c_master_cmd_begin(I2C_PORT_NUM, cmd, 10 / portTICK_RATE_MS);
+    i2c_master_cmd_begin(I2C_PORT_NUM, cmd, 1 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
     return data;
 }
@@ -73,7 +73,7 @@ void i2c_write_device(uint8_t addres, uint8_t data) {
     i2c_master_write_byte(cmd, (addres << 1) | WRITE_BIT, ACK_CHECK_EN);
     i2c_master_write_byte(cmd, data, ACK_CHECK_EN);
     i2c_master_stop(cmd);
-    i2c_master_cmd_begin(I2C_PORT_NUM, cmd, 10 / portTICK_RATE_MS);
+    i2c_master_cmd_begin(I2C_PORT_NUM, cmd, 1 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
 }
 
@@ -124,12 +124,9 @@ void i2cscanner(void) {
 
 static uint8_t IOstatus = 0;
 static uint8_t adc_select = 0;
-float voltageMUX = 0;
 void i2c_task(void *arg) {
     TickType_t timestamp = xTaskGetTickCount();
     TickType_t adcstamp = xTaskGetTickCount();
-    //  TickType_t unlockstamp = xTaskGetTickCount();
-    TickType_t menustamp = xTaskGetTickCount();
     ESP_LOGI(TAG, "I2C tasK running... ");
     i2c_master_init(); // start i2c task
     i2cscanner();
@@ -146,20 +143,14 @@ void i2c_task(void *arg) {
     i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // updat leds
     ssd1306_init();
     ssd1306_display_clear();
-    // IOstatus = 0xff;
-    IOstatus = 0xCF;                                       // Only cnannel 1 and 2 are ntc
+    // IOstatus = 0xff; All inputs Voltage
+    // IOstatus = 0x00; All inputs NTC
+    IOstatus = 0x0F;                                       // chnn 1 2 3 4 pull down enabled
     i2c_write_device(I2C0_EXPANDER_ADDRESS_NTC, IOstatus); // update IO extender
-
     aproxtimer = 600;
-    float adcsamp = 0;
-    int adc = 0;
 
 #define avrlen 6
-    float NTC1avr[avrlen] = {0};
-    float NTC0avr[avrlen] = {0};
     float t = 0;
-    int pNTC1 = 0;
-    int pNTC0 = 0;
     int tmp = 0;
     int res = 0;
 
@@ -167,8 +158,7 @@ void i2c_task(void *arg) {
 
     for (;;) {
         // i2cblink();
-        if (adcstamp + pdMS_TO_TICKS(150) < xTaskGetTickCount()) {
-            adcstamp = xTaskGetTickCount();
+        if (adcstamp + pdMS_TO_TICKS(100) < xTaskGetTickCount()) {
             i2cblink();
             ADC[adc_select] = AdcSampRaw();
             ADC_256[adc_select] = read_adc_256();
@@ -177,20 +167,27 @@ void i2c_task(void *arg) {
             case 0: // p1 Tin
                 // ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
                 ntcLookup(scaleX(read_adc_256()), &tmp, &res);
-                NTC[adc_select] = (float)tmp / 1000;
-                ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
+                if (tmp == -20000)
+                    NTC[adc_select] = NAN;
+                else
+                    NTC[adc_select] = (float)tmp / 1000;
+                // ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
                 break;
 
             case 1: // p2 Tout
                 ntcLookup(scaleX(read_adc_256()), &tmp, &res);
-                NTC[adc_select] = (float)tmp / 1000;
-                ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
+                if (tmp == -20000)
+                    NTC[adc_select] = NAN;
+                else
+                    NTC[adc_select] = (float)tmp / 1000;
+
+                // ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
                 break;
 
             case 2: // p3 Waterleakage detection
-                t = map(ADC[adc_select], 334, 3195, 0, 12);
-                ESP_LOGI(TAG, "P%02d %.2fV ", adc_select + 1, t);
-                if (t > 2.0) {
+                t = map(ADC[adc_select], 334, 3195, 0, 2.485);
+                // ESP_LOGI(TAG, "P%02d %.2fV ", adc_select + 1, t);
+                if (t < 2.25) {
                     WaterAlarm = true;
                 } else {
                     WaterAlarm = false;
@@ -198,14 +195,14 @@ void i2c_task(void *arg) {
                 break;
 
             case 3: // p4 Day/Night detection
-                t = map(ADC[adc_select], 334, 3195, 0, 12);
-                if (t > 2) {
+                t = map(ADC[adc_select], 334, 3195, 0, 2.485);
+                if (t < 2.25) {
                     DayNight = true;
                 }
-                if (t < 1.5) {
+                if (t > 2) {
                     DayNight = false;
                 }
-                ESP_LOGI(TAG, "P%02d %.2fV %s", adc_select + 1, t, (DayNight == 1) ? "Day" : "Night");
+                // ESP_LOGI(TAG, "P%02d %.2fV %s", adc_select + 1, t, (DayNight == 1) ? "Day" : "Night");
                 break;
 
             case 4: // p5 Plow
@@ -215,7 +212,7 @@ void i2c_task(void *arg) {
                 } else {
                     PressLow = NAN; // no pressure sensor mounted
                 }
-                ESP_LOGI(TAG, "P%02d %.2fV PresLow %02.2fBarr", adc_select + 1, t, PressLow);
+                // ESP_LOGI(TAG, "P%02d %.2fV PresLow %02.2f Barr", adc_select + 1, t, PressLow);
                 break;
 
             case 5: // p6 Phigh
@@ -225,7 +222,7 @@ void i2c_task(void *arg) {
                 } else {
                     PressHigh = NAN; // no pressure sensor mounted
                 }
-                ESP_LOGI(TAG, "P%02d %.2fV PresLow %02.2fBarr", adc_select + 1, t, PressHigh);
+                // ESP_LOGI(TAG, "P%02d %.2fV PresHigh %02.2f Barr", adc_select + 1, t, PressHigh);
                 adc_select = 7;
                 break;
 
@@ -242,6 +239,7 @@ void i2c_task(void *arg) {
                     xSemaphoreGive(xSemaphoreVIN);
                 }
                 break;
+
             case 9:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
                     voltageHEAT = map(ADC[adc_select], 334, 3195, 0, 12);
@@ -273,6 +271,7 @@ void i2c_task(void *arg) {
             IOstatus = IOstatus & 0xc0;
             IOstatus = IOstatus | (ADCadress[adc_select]);         // set mux to selected channel
             i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
+            adcstamp = xTaskGetTickCount();
         }
 
         if (timestamp + pdMS_TO_TICKS(250) < xTaskGetTickCount()) {
@@ -305,9 +304,10 @@ void i2c_task(void *arg) {
                 IOstatus ^= (-!0 ^ IOstatus) & (1UL << POS_KEY2);           // Set bit KEY2
                 i2c_write_device(I2C0_EXPANDER_ADDRESS_KEY, IOstatus);      // update IO extender
                 if (approx == true)
-                    aproxtimer = 600;
+                    aproxtimer = 60;
+
                 if (FrontOled) {
-                    if (dispayOnOff == false && aproxtimer == 600) {
+                    if (dispayOnOff == false && aproxtimer == 60) {
                         ssd1306_display_OnOff(true);
                         OLED_homeScreen();
                         unlock = 0;
@@ -325,9 +325,9 @@ void i2c_task(void *arg) {
                     if (buzzerOnOff) {
                         IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
                         IOstatus ^= (-!1 ^ IOstatus) & (1UL << buzzer);        // Changing the nth bit to x
-                        i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update buzzer
-                        IOstatus ^= (-!0 ^ IOstatus) & (1UL << buzzer);        // Changing the nth bit to x
-                        i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update buzzer
+                        i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // updat leds
+                        IOstatus ^= (-!0 ^ IOstatus) & (1UL << buzzer);        // Buzzer off
+                        i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // updat leds
                     }
                 }
             }
@@ -378,6 +378,7 @@ void i2c_task(void *arg) {
                         LCD_menu_4(0);
                 }
             }
+  
         }
         if ((key0 || key1 || key2)) {
             vTaskDelay(9);

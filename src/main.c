@@ -45,7 +45,7 @@ SemaphoreHandle_t xSemaphoreVIN = NULL;
 static float voltage = 0;
 static float tmp = 0;
 static uint8_t ch;
-static uint8_t lastkey;
+static uint8_t lastkey = 0, loop = 0;
 static bool last_approx;
 float datalog = 0;
 void main_task(void *parameter) {
@@ -115,23 +115,44 @@ void main_task(void *parameter) {
                 xSemaphoreGive(xSemaphoreVIN);
             }
             ch = fgetc(stdin);
-            if (ch != 0xFF) {
+            if (ch != 0xFF || loop != 0) {
+                if (ch == ' ') {
+                    if (loop == 0)
+                        loop = lastkey;
+                    else {
+                        loop = 0;
+                        ch = lastkey;
+                    }
+                }
+                if (loop != 0 ) {
+                    printf("\r\n");
+                    ch = lastkey;
+                }
                 lastkey = ch;
                 if (ch == '1') {
-                    ESP_LOGI(TAG, "LOG:");
-                    if (xSemaphoreTake(xSemaphoreSTR, pdTRUE)) {
+                    if (xSemaphoreTake(xSemaphoreSTR, (TickType_t)50) == pdTRUE) {
                         ESP_LOGI(TAG, "RH_day:%02d RH_night:%02d RH_act:%02.2f", Kabel400.RH_day, Kabel400.RH_night, hum_FG6485[1]);
                         ESP_LOGI(TAG, "dim1=%d fanspeed=%.0f circulateTimer=%d circulateTime=%d", dim1, Kabel400.fanspeed, Kabel400.circulateTimer * 60, Kabel400.circulateTime);
                         ESP_LOGI(TAG, "WaterAlarm:%s RAW: %d", (WaterAlarm == 1) ? "Alarm" : "no Alarm", ADC[2]);
                         ESP_LOGI(TAG, "LowWaterAlarm:%s RAW: %d", (Kabel400.floatsensorError > 60) ? "Alarm" : "no Alarm", Kabel400.floatsensor);
                         ESP_LOGI(TAG, "P5 %s RAW: %d", (DayNight == 1) ? "Day" : "Night", ADC[3]);
-                        ESP_LOGI(TAG, "VRH   %03.02fV RAW: %d", voltageRH, ADC[8]);
+                        ESP_LOGI(TAG, "VRH   %03.02fV RAW: %d", voltageRH, ADC[10]);
                         ESP_LOGI(TAG, "VTMP  %03.02fV RAW: %d", voltageRH, ADC[9]);
-                        ESP_LOGI(TAG, "FAN   %03.02fV RAW: %d", voltageFAN, ADC[10]);
+                        ESP_LOGI(TAG, "FAN   %03.02fV RAW: %d", voltageFAN, ADC[8]);
                         ESP_LOGI(TAG, "speedfan   %03.02fV", Fan.speedfan);
                         ESP_LOGI(TAG, "speedpump   %03.02fV", Fan.speedpump);
-                        ESP_LOGI(TAG, "ADC RAW %d %d %d %d %d %d %d %d", ADC[0], ADC[1], ADC[2], ADC[3], ADC[4], ADC[5], ADC[6], ADC[7]);
+                        printf("Port nr ");
+                        for (int t = 0; t < 15; t++) {
+                            printf("P%02d cnt   ", t + 1);
+                        }
+                        printf("\r\n");
+                        printf("ADC raw ");
+                        for (int t = 0; t < 15; t++) {
+                            printf("%02d:%04d   ", t, ADC[t]);
+                        }
+                        printf("\r\n");
                         xSemaphoreGive(xSemaphoreSTR);
+                        vTaskDelay(100);
                     }
                 }
                 if (ch == 'N') {
@@ -177,7 +198,21 @@ void main_task(void *parameter) {
                 xSemaphoreGive(xSemaphoreVIN);
             }
             ch = fgetc(stdin);
-            if (ch != 0xFF) {
+            if (ch != 0xFF || loop != 0) {
+                if (ch == ' ') {
+                    if (loop == 0)
+                        loop = lastkey;
+                    else {
+                        loop = 0;
+                        ch = lastkey;
+                    }
+                }
+                if (loop != 0 ) {
+                    printf("\r\n");
+                    ch = lastkey;
+                }
+                lastkey = ch;
+
                 if (ch == '1') {
                     ESP_LOGI(TAG, "dim1=%d dim2=%d dim3=%d", dim1, dim2, dim3);
                     ESP_LOGI(TAG, "LastCNT=%d", lstcnt);
@@ -187,16 +222,16 @@ void main_task(void *parameter) {
                     for (int tel = 0; tel < 15; tel++) {
                         ESP_LOGI(TAG, " nr:%2d ADC:%4d   ADC_256_raw:%6d", tel, ADC[tel], ADC_256[tel]);
                     }
-                    // ESP_LOGI(TAG, "FAN   %03.02fV ", voltageFAN);
-                    // ESP_LOGI(TAG, "HEAT  %03.02fV ", voltageHEAT);
-                    // ESP_LOGI(TAG, "RH    %03.02fV\r\n", voltageRH);
-                    ESP_LOGI(TAG, "T1   %d Raw", 4095 - ADC[0]);
-                    ESP_LOGI(TAG, "T2   %d Raw", 4095 - ADC[1]);
-                    ESP_LOGI(TAG, "T3   %d Raw", 4095 - ADC[2]);
-                    // ESP_LOGI(TAG, "T1   %03.02fC ", new_ntc_sample5v(4095 - ADC[0]));
-                    // ESP_LOGI(TAG, "T2   %03.02fC ", new_ntc_sample5v(4095 - ADC[1]));
-                    // ESP_LOGI(TAG, "T3   %03.02fC ", new_ntc_sample5v(4095 - ADC[2]));
-                    // ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
+                    printf("Port nr ");
+                    for (int t = 0; t < 15; t++) {
+                        printf("P%02d cnt   ", t + 1);
+                    }
+                    printf("\r\n");
+                    printf("ADC raw ");
+                    for (int t = 0; t < 15; t++) {
+                        printf("%02d:%04d   ", t, ADC[t]);
+                    }
+                    printf("\r\n");
                 }
 
                 if (ch == 'N') {
@@ -277,15 +312,27 @@ void main_task(void *parameter) {
                 }
             }
             ch = fgetc(stdin);
-            if (ch != 0xFF) {
+            if (ch != 0xFF || loop != 0) {
+                if (ch == ' ') {
+                    if (loop == 0)
+                        loop = lastkey;
+                    else {
+                        loop = 0;
+                        ch = lastkey;
+                    }
+                }
+                if (loop != 0 ) {
+                    printf("\r\n");
+                    ch = lastkey;
+                }
+                lastkey = ch;
+
                 if (ch == '1') {
                     if (xSemaphoreTake(xSemaphoreNTC, 10 == pdTRUE)) {
                         ESP_LOGI(TAG, "Temp1 %03.02fC", NTC[0]);
                         ESP_LOGI(TAG, "Temp2 %03.02fC", NTC[1]);
                         xSemaphoreGive(xSemaphoreNTC);
                     }
-                    ESP_LOGI(TAG, "Plow  %03.02fBar RAW: %.2fV", PressLow, ADC[4] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "Phigh %03.02fBar RAW: %.2fV", PressHigh, ADC[5] * NVMsystem.NVMVgain / 1000);
                     if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
                         ESP_LOGI(TAG, "VRH   %03.02fV RAW: %d", voltageRH, ADC[6]);
                         ESP_LOGI(TAG, "VTMP  %03.02fV RAW: %d", voltageHEAT, ADC[7]);
@@ -297,20 +344,21 @@ void main_task(void *parameter) {
                         ESP_LOGI(TAG, "speedpump   %03.02f", Pump.speedpump);
                         xSemaphoreGive(xSemaphoreSTR);
                     }
-                    ESP_LOGI(TAG, "ADC RAW %d %d %d %d %d %d %d %d", ADC[0], ADC[1], ADC[2], ADC[3], ADC[4], ADC[5], ADC[6], ADC[7]);
+                    printf("Port nr ");
+                    for (int t = 0; t < 15; t++) {
+                        printf("P%02d cnt   ", t + 1);
+                    }
+                    printf("\r\n");
+                    printf("ADC raw ");
+                    for (int t = 0; t < 15; t++) {
+                        printf("%02d:%04d   ", t, ADC[t]);
+                    }
+                    printf("\r\n");
                 }
                 if (ch == '2') {
                     ESP_LOGI(TAG, "Menustatus: menuPos[0] = %d menuPos[1] = %d menuPos[2] = %d", menuPos[0], menuPos[1], menuPos[2]);
                 }
                 if (ch == '3') {
-                    ESP_LOGI(TAG, "P1 RAW %04d  %0.2fV", ADC[0], ADC[0] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "P2 RAW %04d  %0.2fV", ADC[1], ADC[1] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "P3 RAW %04d  %0.2fV", ADC[2], ADC[2] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "P4 RAW %04d  %0.2fV", ADC[3], ADC[3] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "P5 RAW %04d  %0.2fV", ADC[4], ADC[4] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "P6 RAW %04d  %0.2fV", ADC[5], ADC[5] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "PR RAW %04d  %0.2fV", ADC[6], ADC[6] * NVMsystem.NVMVgain * VgainRJ12 / 1000);
-                    ESP_LOGI(TAG, "PH RAW %04d  %0.2fV", ADC[7], ADC[7] * NVMsystem.NVMVgain * VgainRJ12 / 1000);
                     ESP_LOGI(TAG, "P5 Press LOW  %0.2f Barr", PressLow);
                     ESP_LOGI(TAG, "P6 Press High %0.2f Barr", PressHigh);
                 }
@@ -409,7 +457,21 @@ void main_task(void *parameter) {
             }
 
             ch = fgetc(stdin);
-            if (ch != 0xFF) {
+            if (ch != 0xFF || loop != 0) {
+                if (ch == ' ') {
+                    if (loop == 0)
+                        loop = lastkey;
+                    else {
+                        loop = 0;
+                        ch = lastkey;
+                    }
+                }
+                if (loop != 0 ) {
+                    printf("\r\n");
+                    ch = lastkey;
+                }
+                lastkey = ch;
+
                 if (ch == '1') {
                     ESP_LOGI(TAG, "dim1=%d dim2=%d dim3=%d", dim1, dim2, dim3);
                     ESP_LOGI(TAG, "LastCNT=%d", lstcnt);

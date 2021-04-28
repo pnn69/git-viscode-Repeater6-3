@@ -24,7 +24,7 @@ extern int TF0, R0, TF1, R1, TF2, R2;
   21  //			 /*!< gpio number for I2C master clock */
 #define I2C_SDA_IO \
   22                       //			 /*!< gpio number for I2C master data  */
-#define I2C_FREQ_HZ 100000 /*!< I2C master clock frequency */
+#define I2C_FREQ_HZ 400000 /*!< I2C master clock frequency */
 //#define I2C_FREQ_HZ				400000           /*!< I2C master
 //clock frequency */
 #define I2C_PORT_NUM I2C_NUM_1     /*!< I2C port number for master dev */
