@@ -124,7 +124,7 @@ void main_task(void *parameter) {
                         ch = lastkey;
                     }
                 }
-                if (loop != 0 ) {
+                if (loop != 0) {
                     printf("\r\n");
                     ch = lastkey;
                 }
@@ -140,7 +140,7 @@ void main_task(void *parameter) {
                         ESP_LOGI(TAG, "VTMP  %03.02fV RAW: %d", voltageRH, ADC[9]);
                         ESP_LOGI(TAG, "FAN   %03.02fV RAW: %d", voltageFAN, ADC[8]);
                         ESP_LOGI(TAG, "speedfan   %03.02fV", Fan.speedfan);
-                        ESP_LOGI(TAG, "speedpump   %03.02fV", Fan.speedpump);
+                        ESP_LOGI(TAG, "speedpump  %03.02fV", Fan.speedpump);
                         printf("Port nr ");
                         for (int t = 0; t < 15; t++) {
                             printf("P%02d cnt   ", t + 1);
@@ -207,7 +207,7 @@ void main_task(void *parameter) {
                         ch = lastkey;
                     }
                 }
-                if (loop != 0 ) {
+                if (loop != 0) {
                     printf("\r\n");
                     ch = lastkey;
                 }
@@ -240,6 +240,7 @@ void main_task(void *parameter) {
                 if (ch == 'C') {
                     CalibrateV();
                 }
+                vTaskDelay(1000 / portTICK_PERIOD_MS); //wait one second
             }
             break;
 
@@ -321,7 +322,7 @@ void main_task(void *parameter) {
                         ch = lastkey;
                     }
                 }
-                if (loop != 0 ) {
+                if (loop != 0) {
                     printf("\r\n");
                     ch = lastkey;
                 }
@@ -466,7 +467,7 @@ void main_task(void *parameter) {
                         ch = lastkey;
                     }
                 }
-                if (loop != 0 ) {
+                if (loop != 0) {
                     printf("\r\n");
                     ch = lastkey;
                 }

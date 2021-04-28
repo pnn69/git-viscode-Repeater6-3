@@ -187,21 +187,12 @@ void i2c_task(void *arg) {
             case 2: // p3 Waterleakage detection
                 t = map(ADC[adc_select], 334, 3195, 0, 2.485);
                 // ESP_LOGI(TAG, "P%02d %.2fV ", adc_select + 1, t);
-                if (t < 2.25) {
-                    WaterAlarm = true;
-                } else {
-                    WaterAlarm = false;
-                }
+                WaterAlarm = t < 2.25 ? true : false;
                 break;
 
             case 3: // p4 Day/Night detection
                 t = map(ADC[adc_select], 334, 3195, 0, 2.485);
-                if (t < 2.25) {
-                    DayNight = true;
-                }
-                if (t > 2) {
-                    DayNight = false;
-                }
+                DayNight = t < 2.25 ? true : false;
                 // ESP_LOGI(TAG, "P%02d %.2fV %s", adc_select + 1, t, (DayNight == 1) ? "Day" : "Night");
                 break;
 
@@ -228,28 +219,23 @@ void i2c_task(void *arg) {
 
             case 8:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    voltageFAN = map(ADC[adc_select], 334, 3195, 0, 12);
+                    voltageFAN = map(ADC[adc_select], LoAnaCount10V, HiAnaCount10V, 0, 10);
                     // ESP_LOGI(TAG, "P%02d Vfan:%.2fV ", adc_select + 1, voltageFAN);
-
-                    if (voltageFAN > CompressorOnVoltage) {
-                        CompressorOn = false;
-                    } else {
-                        CompressorOn = true;
-                    }
+                    CompressorOn = voltageFAN < CompressorOnVoltage ? true : false;
                     xSemaphoreGive(xSemaphoreVIN);
                 }
                 break;
 
             case 9:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    voltageHEAT = map(ADC[adc_select], 334, 3195, 0, 12);
+                    voltageHEAT = map(ADC[adc_select], LoAnaCount12V, HiAnaCount12V, 0, 12);
                     // ESP_LOGI(TAG, "P%02d Vheat:%.2fV ", adc_select + 1, voltageHEAT);
                     xSemaphoreGive(xSemaphoreVIN);
                 }
                 break;
             case 10:
                 if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                    voltageRH = map(ADC[adc_select], 334, 3195, 0, 12);
+                    voltageRH = map(ADC[adc_select], LoAnaCount12V, HiAnaCount12V, 0, 12);
                     // ESP_LOGI(TAG, "P%02d Vrh:%.2fV \r\n", adc_select + 1, voltageRH);
                     xSemaphoreGive(xSemaphoreVIN);
                     adc_select = 12;
@@ -378,7 +364,6 @@ void i2c_task(void *arg) {
                         LCD_menu_4(0);
                 }
             }
-  
         }
         if ((key0 || key1 || key2)) {
             vTaskDelay(9);

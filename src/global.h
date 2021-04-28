@@ -47,9 +47,9 @@
 #define POS_KEY1 (4)
 #define POS_KEY2 (3)
 
-#define ledFan 0        // pos led Fan IO extender
-#define ledRH 1         // pos led RH IO extender
-#define ledHeater 2     // pos led Heater IO extender
+#define ledFan 0          // pos led Fan IO extender
+#define ledRH 1           // pos led RH IO extender
+#define ledHeater 2       // pos led Heater IO extender
 #define ledESP GPIO_NUM_2 // Led mounted on pcb at pin GPIO2
 
 #define AC_pin1 32 // Output to Opto Triac1
@@ -80,6 +80,11 @@
 #define VgainFan 4.556
 #define VgainRJ12 1.68
 #define CompressorOnVoltage 2
+#define LoAnaCount10V 336
+#define HiAnaCount10V 2700
+#define LoAnaCount12V 345
+#define HiAnaCount12V 3195
+
 
 #define ToutPos 1
 #define TinPos 0
