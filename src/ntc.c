@@ -208,6 +208,6 @@ int ntcLookup(int mvi, int *pt, int *pr) { // returns temp and resistance
     int v1 = lut[n - 3 + 2], v0 = lut[n + 2]; // v1 > v0
     *pt = t0 + (t1 - t0) * (mvi - v0) / (v1 - v0);
     *pr = r0 + (r1 - r0) * (mvi - v0) / (v1 - v0);
-    //ESP_LOGW(TAG,"v=%d v1=%d t0=%d t1=%d t=%d r=%d", v0, v1, t0, t1, *pt, *pr);
+    // ESP_LOGW(TAG,"v=%d v1=%d t0=%d t1=%d t=%d r=%d", v0, v1, t0, t1, *pt, *pr);
     return 0;
 }
