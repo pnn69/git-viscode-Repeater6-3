@@ -240,7 +240,7 @@ void main_task(void *parameter) {
                 if (ch == 'C') {
                     CalibrateV();
                 }
-                vTaskDelay(1000 / portTICK_PERIOD_MS); //wait one second
+                vTaskDelay(1000 / portTICK_PERIOD_MS); // wait one second
             }
             break;
 

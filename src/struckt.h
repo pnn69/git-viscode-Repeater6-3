@@ -4,10 +4,12 @@
  *  Created on: 26 Aug 2020
  *      Author: Peter
  */
+#include <stdint.h>
+#include <stdbool.h>
+#include <esp_err.h>
 
 #ifndef MAIN_STRUCKT_H_
 #define MAIN_STRUCKT_H_
-
 #define NVM_VERSION 7
 
 typedef struct {
