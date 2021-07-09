@@ -21,6 +21,7 @@ volatile char tenth;  // timing parameter
 volatile int dim1 = 0;
 volatile int dim2 = 0;
 volatile int dim3 = 0;
+DRAM_ATTR int64_t PeriodTime=0;
 
 static DRAM_ATTR volatile uint64_t samp, psamp, halfperiod, skew = 0;
 static DRAM_ATTR volatile int16_t nRes, pRes, offsetcorrection = 0;
@@ -222,7 +223,8 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
   uint32_t gpio_num = (uint32_t)arg;
   if (gpio_num == ZerroCrossPin) {
     portENTER_CRITICAL(&mux);  // used in int handler
-    if (esp_timer_get_time() - samp > 9000) {
+    PeriodTime = esp_timer_get_time() - samp;
+    if (PeriodTime > 9000) {
       halfperiod = samp;
       samp = esp_timer_get_time();
       OddEven = !OddEven;

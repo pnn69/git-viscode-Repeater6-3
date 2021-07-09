@@ -215,7 +215,7 @@ void main_task(void *parameter) {
 
                 if (ch == '1') {
                     ESP_LOGI(TAG, "dim1=%d dim2=%d dim3=%d", dim1, dim2, dim3);
-                    ESP_LOGI(TAG, "LastCNT=%d", lstcnt);
+                    ESP_LOGI(TAG, "LastCNT=%d ", lstcnt);
                 }
                 if (ch == '2') {
                     printf("\r\n");
@@ -586,7 +586,7 @@ void app_main() {
     adc_config();
     init_zerocross(); // set up zero cross detection
     vTaskDelay(50);
-    init_timer(period); // start timer
+    init_timer(PeriodTime); // start timer
     xTaskCreate(RS487_task, "RS487_task", 2024 * 2, NULL, 5, NULL);
     gpio_pad_select_gpio(ledESP);
     gpio_set_direction(ledESP, GPIO_MODE_OUTPUT);
