@@ -587,7 +587,7 @@ void app_main() {
     adc_config();
     init_zerocross(); // set up zero cross detection
     vTaskDelay(100);
-    init_timer((uint16_t)PeriodTime); // start timer
+    init_timer(lstcnt); // start timer
     xTaskCreate(RS487_task, "RS487_task", 2024 * 2, NULL, 5, NULL);
     gpio_pad_select_gpio(ledESP);
     gpio_set_direction(ledESP, GPIO_MODE_OUTPUT);
