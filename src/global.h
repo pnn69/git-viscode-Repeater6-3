@@ -32,8 +32,8 @@
 #include "sdkconfig.h"
 #include "struckt.h"
 
-#define HW_VERSION "6/3.A"
-#define SW_VERSION "1.0"
+#define HW_VERSION "6/3V0.1A"
+#define SW_VERSION "1.1"
 
 #define ZerroCrossPin 35
 
