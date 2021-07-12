@@ -48,6 +48,7 @@ static uint8_t ch;
 static uint8_t lastkey = 0, loop = 0;
 static bool last_approx;
 float datalog = 0;
+
 void main_task(void *parameter) {
     ESP_LOGI("Main", "Smartbox HW:%s SW:%s NVM:%d", HW_VERSION, SW_VERSION, NVM_VERSION);
     OLED_homeScreen();
@@ -215,7 +216,7 @@ void main_task(void *parameter) {
 
                 if (ch == '1') {
                     ESP_LOGI(TAG, "dim1=%d dim2=%d dim3=%d", dim1, dim2, dim3);
-                    ESP_LOGI(TAG, "LastCNT=%d ", lstcnt);
+                    ESP_LOGI(TAG, "LastCNT=%d PeriodTime=%f", lstcnt,(double)PeriodTime);
                 }
                 if (ch == '2') {
                     printf("\r\n");
@@ -585,8 +586,8 @@ void app_main() {
     ESP_LOGI(TAG, "NVMVgain %f", NVMsystem.NVMVgain);
     adc_config();
     init_zerocross(); // set up zero cross detection
-    vTaskDelay(50);
-    init_timer(PeriodTime); // start timer
+    vTaskDelay(100);
+    init_timer((uint16_t)PeriodTime); // start timer
     xTaskCreate(RS487_task, "RS487_task", 2024 * 2, NULL, 5, NULL);
     gpio_pad_select_gpio(ledESP);
     gpio_set_direction(ledESP, GPIO_MODE_OUTPUT);

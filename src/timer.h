@@ -15,7 +15,7 @@ extern int dim3;
 extern bool statFan;
 extern bool statRH;
 extern bool statHeater;
-extern DRAM_ATTR int64_t PeriodTime;
+extern volatile DRAM_ATTR int64_t PeriodTime;
 float fan_calcPercentageToVoltage(float measP ); // percentage in voltage out
 int IRAM_ATTR nextValneg(int curr, int max);
 void init_timer(int);
