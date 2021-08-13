@@ -216,7 +216,7 @@ void main_task(void *parameter) {
 
                 if (ch == '1') {
                     ESP_LOGI(TAG, "dim1=%d dim2=%d dim3=%d", dim1, dim2, dim3);
-                    ESP_LOGI(TAG, "LastCNT=%d PeriodTime=%f", lstcnt,(double)PeriodTime);
+                    ESP_LOGI(TAG, "LastCNT=%d PeriodTime=%f", lstcnt, (double)PeriodTime);
                 }
                 if (ch == '2') {
                     printf("\r\n");
