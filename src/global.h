@@ -80,9 +80,9 @@
 #define VgainFan 4.556
 #define VgainRJ12 1.68
 #define CompressorOnVoltage 2
-#define LoAnaCount10V 336
-#define HiAnaCount10V 2700
-#define LoAnaCount12V 345
+#define LoAnaCount10V 347
+#define HiAnaCount10V 1520
+#define LoAnaCount12V 373
 #define HiAnaCount12V 3195
 
 

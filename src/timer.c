@@ -396,17 +396,20 @@ void IRAM_ATTR timer_isr_1(void *para) {
 
 int init_timer(uint16_t set) {
     uint16_t div = 0;
-    if (set/200 <= 55 && set >= 45) {
+    ESP_LOGI(TAG, "Counter %d", set);
+    set = 1000000/set;
+    ESP_LOGI(TAG, "Detected: %dHz", set);
+    if (set <= 55 && set >= 45) {
         div = 1000;
         ESP_LOGI(TAG, "50Hz");
-    } else if (set/200 >= 56 && set/200 <= 70) {
+    } else if (set >= 56 && set <= 70) {
         div = 833;
         ESP_LOGI(TAG, "60Hz");
     } else {
         ESP_LOGI(TAG, "No legal frequentcy detected. ");
         div = 1000;
     }
-    ESP_LOGI(TAG, "Measured %dHz", set/200);
+    ESP_LOGI(TAG, "Measured %dHz", set);
     gpio_pad_select_gpio(AC_pin1);
     gpio_set_direction((gpio_num_t)AC_pin1, GPIO_MODE_OUTPUT);
     gpio_set_level((gpio_num_t)AC_pin1, 0);
