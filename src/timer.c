@@ -27,7 +27,7 @@ static DRAM_ATTR volatile int16_t nRes, pRes, offsetcorrection = 0;
 volatile DRAM_ATTR int16_t lstcnt, period;
 static DRAM_ATTR const int nchannel = 3;
 static DRAM_ATTR const int treshold = 100; // tyristor triggers not at low voltages so limit range
-static DRAM_ATTR const int ZerrCrossDelay = 100; //Zerro cross detected before real crossing due led voltage +-1,6V
+static DRAM_ATTR const int ZerrCrossDelay = 120; //Zerro cross detected before real crossing due led voltage +-1,6V
 static volatile uint16_t executeChnn[3];
 static volatile int channel[3];
 static DRAM_ATTR volatile int loopcnt;
@@ -331,8 +331,7 @@ void IRAM_ATTR timer_isr_1(void *para) {
     // timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &timerstamp);
     // Delay 10 us
     wait = esp_timer_get_time();
-    while (wait + 25 > esp_timer_get_time())
-        ;
+    while (wait + 50 > esp_timer_get_time());
     gpio_set_level((gpio_num_t)channel[next], 1);
 
     next = 0;

@@ -487,9 +487,9 @@ void main_task(void *parameter) {
                     ESP_LOGI(TAG, "P6 RAW %04d  %0.2fV", ADC[5], ADC[5] * NVMsystem.NVMVgain / 1000);
                     ESP_LOGI(TAG, "PR RAW %04d  %0.2fV", ADC[6], ADC[6] * NVMsystem.NVMVgain * VgainRJ12 / 1000);
                     ESP_LOGI(TAG, "PH RAW %04d  %0.2fV", ADC[7], ADC[7] * NVMsystem.NVMVgain * VgainRJ12 / 1000);
-                    ESP_LOGI(TAG, "FANRAW %04d  %03.05fV ",ADC[8], voltageFAN);
-                    ESP_LOGI(TAG, "RF RAW %04d  %03.02fV ",ADC[10], voltageRH);
-                    ESP_LOGI(TAG, "HEATRAW %04d %03.02fV ",ADC[9], voltageHEAT);
+                    ESP_LOGI(TAG, "FANRAW %04d  %03.05fV ", ADC[8], voltageFAN);
+                    ESP_LOGI(TAG, "RH RAW %04d  %03.02fV ", ADC[10], voltageRH);
+                    ESP_LOGI(TAG, "HEATRAW %04d %03.02fV ", ADC[9], voltageHEAT);
                 }
 
                 if (ch == 'N') {

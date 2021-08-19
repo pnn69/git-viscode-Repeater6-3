@@ -164,24 +164,26 @@ void i2c_task(void *arg) {
             ADC_256[adc_select] = read_adc_256();
             switch (adc_select) {
 
-            case 0: // p1 Tin
+            case 0: { // p1 Tin
                 // ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
                 ntcLookup(scaleX(read_adc_256()), &tmp, &res);
-                if (tmp == -20000)
+                 if (tmp == -20000)
                     NTC[adc_select] = NAN;
                 else
                     NTC[adc_select] = (float)tmp / 1000;
-                // ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
-                break;
+                 ESP_LOGI(TAG, "P%02d Temp:%02.2f RAW %d RAW %d", adc_select + 1, NTC[adc_select], ADC_256[adc_select], ADC[adc_select]);
+            } break;
 
             case 1: // p2 Tout
+
                 ntcLookup(scaleX(read_adc_256()), &tmp, &res);
                 if (tmp == -20000)
                     NTC[adc_select] = NAN;
                 else
                     NTC[adc_select] = (float)tmp / 1000;
-
+                // ESP_LOGI(TAG, "P%02d Temp:%02.2f RAW %d RAW %d", adc_select + 1, NTC[adc_select],ADC_256[adc_select], ADC[adc_select]);
                 // ESP_LOGI(TAG, "P%02d Temp:%02.2f ", adc_select + 1, NTC[adc_select]);
+
                 break;
 
             case 2: // p3 Waterleakage detection
@@ -252,6 +254,10 @@ void i2c_task(void *arg) {
             }
             if (adc_select++ >= 14) // next mux position
                 adc_select = 0;
+            if(adc_select == 6) adc_select = 8;
+            if(adc_select == 7) adc_select++;
+            if(adc_select == 11) adc_select = 13;
+            if(adc_select == 12) adc_select++;
 
             IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
             IOstatus = IOstatus & 0xc0;

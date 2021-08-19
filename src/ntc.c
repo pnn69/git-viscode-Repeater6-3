@@ -171,7 +171,7 @@ void calibrate(int countl, int counth) {
     const float refh = (24950.0) / 2.0; // 1,25
     A = (refh - refl) / (counth - countl);
     B = refh - A * counth;
-    ESP_LOGI(TAG, "Calibrate %d-%d A=%f, B=%f", countl, counth, A, B);
+    //ESP_LOGI(TAG, "Calibrate %d-%d A=%f, B=%f", countl, counth, A, B);
 }
 
 // NTC lookup table, see spreadsheet
@@ -190,11 +190,13 @@ int ntcLookup(int mvi, int *pt, int *pr) { // returns temp and resistance
     if (mvi > lut[0 + 2]) { // max mv
         *pt = lut[0];
         *pr = 0;
+        //ESP_LOGI(TAG,"Err to low");
         return -1; // too low
     }
     if (mvi < lut[(lutlen - 1) * 3 + 2]) { // min mv
         *pt = lut[(lutlen - 1) * 3];       // 150C
         *pr = 0;
+        //ESP_LOGI(TAG,"Err to high");
         return 1; // too high
     }
 
@@ -208,6 +210,6 @@ int ntcLookup(int mvi, int *pt, int *pr) { // returns temp and resistance
     int v1 = lut[n - 3 + 2], v0 = lut[n + 2]; // v1 > v0
     *pt = t0 + (t1 - t0) * (mvi - v0) / (v1 - v0);
     *pr = r0 + (r1 - r0) * (mvi - v0) / (v1 - v0);
-    // ESP_LOGW(TAG,"v=%d v1=%d t0=%d t1=%d t=%d r=%d", v0, v1, t0, t1, *pt, *pr);
+    //ESP_LOGI(TAG,"v=%d v1=%d t0=%d t1=%d t=%d r=%d", v0, v1, t0, t1, *pt, *pr);
     return 0;
 }

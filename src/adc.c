@@ -15,7 +15,7 @@
 #define DEFAULT_VREF 1100 // Use adc2_vref_to_gpio() to obtain a better estimate
 #define NO_OF_SAMPLES 64  // Multisampling
 static const adc_atten_t atten = ADC_ATTEN_DB_2_5;
-//static const adc_atten_t atten = ADC_ATTEN_DB_11;
+// static const adc_atten_t atten = ADC_ATTEN_DB_11;
 // static const adc_atten_t atten = ADC_ATTEN_DB_6;
 static const adc_channel_t channelFAN = ADC_CHANNEL_3; // ADC1 CH2
 static const adc_channel_t channelMUX = ADC_CHANNEL_3; // ADC1 CH3
@@ -95,7 +95,7 @@ int read_adc_256() {
     for (int i = 0; i < OVERSAMPLE_COUNT; i++) {
         buf[i] = adc1_get_raw(ADC1_CHANNEL_3); // gpio39, sensor vn
         sum += buf[i];
-        //vTaskDelay(1); // 1ms apart, so 8ms sample time
+        // vTaskDelay(1); // 1ms apart, so 8ms sample time
     }
     int avg = sum * (256 / OVERSAMPLE_COUNT); // just a shift
     return avg;
