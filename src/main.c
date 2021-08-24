@@ -356,6 +356,11 @@ void main_task(void *parameter) {
                         printf("%02d:%04d   ", t, ADC[t]);
                     }
                     printf("\r\n");
+                    printf("ADC mV  ");
+                    for (int t = 0; t < 15; t++) {
+                        printf("%02d:%05.2f  ", t,(float)(scaleX(ADC_256[t]))/10000);
+                    }
+                    printf("\r\n");
                 }
                 if (ch == '2') {
                     ESP_LOGI(TAG, "Menustatus: menuPos[0] = %d menuPos[1] = %d menuPos[2] = %d", menuPos[0], menuPos[1], menuPos[2]);

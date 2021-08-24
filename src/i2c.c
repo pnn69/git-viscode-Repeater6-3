@@ -154,7 +154,7 @@ void i2c_task(void *arg) {
     int tmp = 0;
     int res = 0;
 
-    calibrateScaleX(86080, 429152);
+    calibrateScaleX(88992, 437536);
 
     for (;;) {
         // i2cblink();
@@ -167,11 +167,11 @@ void i2c_task(void *arg) {
             case 0: { // p1 Tin
                 // ntcLookup(scaleX(ADC_256[adc_select]), &tmp, &res);
                 ntcLookup(scaleX(read_adc_256()), &tmp, &res);
-                 if (tmp == -20000)
+                if (tmp == -20000)
                     NTC[adc_select] = NAN;
                 else
                     NTC[adc_select] = (float)tmp / 1000;
-                 ESP_LOGI(TAG, "P%02d Temp:%02.2f RAW %d RAW %d", adc_select + 1, NTC[adc_select], ADC_256[adc_select], ADC[adc_select]);
+                // ESP_LOGI(TAG, "P%02d Temp:%02.2f RAW %d RAW %d", adc_select + 1, NTC[adc_select], ADC_256[adc_select], ADC[adc_select]);
             } break;
 
             case 1: // p2 Tout
@@ -187,14 +187,17 @@ void i2c_task(void *arg) {
                 break;
 
             case 2: // p3 Waterleakage detection
-                t = map(ADC[adc_select], 334, 3195, 0, 2.485);
+                // t = map(ADC[adc_select], 334, 3195, 0, 2.485);
+                t = (float)scaleX(ADC_256[adc_select]) / 10000;
                 // ESP_LOGI(TAG, "P%02d %.2fV ", adc_select + 1, t);
-                WaterAlarm = t < 2.25 ? true : false;
+                WaterAlarm = (t < 2.0 )? true : false;
+                //ESP_LOGI(TAG, "%s t=%04.2f", (WaterAlarm == 1) ? "Alarm" : "no Alarm",t);
                 break;
 
             case 3: // p4 Day/Night detection
-                t = map(ADC[adc_select], 334, 3195, 0, 2.485);
-                DayNight = t < 2.25 ? true : false;
+                // t = map(ADC[adc_select], 334, 3195, 0, 2.485);
+                t = (float)scaleX(ADC_256[adc_select]) / 10000;
+                DayNight = t < 2.0 ? true : false;
                 // ESP_LOGI(TAG, "P%02d %.2fV %s", adc_select + 1, t, (DayNight == 1) ? "Day" : "Night");
                 break;
 
@@ -254,10 +257,14 @@ void i2c_task(void *arg) {
             }
             if (adc_select++ >= 14) // next mux position
                 adc_select = 0;
-            if(adc_select == 6) adc_select = 8;
-            if(adc_select == 7) adc_select++;
-            if(adc_select == 11) adc_select = 13;
-            if(adc_select == 12) adc_select++;
+            if (adc_select == 6) // skip nodt used inputs
+                adc_select = 8;
+            if (adc_select == 7)
+                adc_select++;
+            if (adc_select == 11)
+                adc_select = 13;
+            if (adc_select == 12)
+                adc_select++;
 
             IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
             IOstatus = IOstatus & 0xc0;
