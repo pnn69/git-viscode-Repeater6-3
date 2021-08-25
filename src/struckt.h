@@ -10,7 +10,7 @@
 
 #ifndef MAIN_STRUCKT_H_
 #define MAIN_STRUCKT_H_
-#define NVM_VERSION 8
+#define NVM_VERSION 9
 
 typedef struct {
     uint8_t nvm_config;

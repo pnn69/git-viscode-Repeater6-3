@@ -152,6 +152,12 @@ void main_task(void *parameter) {
                             printf("%02d:%04d   ", t, ADC[t]);
                         }
                         printf("\r\n");
+                        printf("ADC mV  ");
+                        for (int t = 0; t < 15; t++) {
+                            printf("%02d:%05.2f  ", t, (float)(scaleX(ADC_256[t])) / 10000);
+                        }
+                        printf("\r\n");
+
                         xSemaphoreGive(xSemaphoreSTR);
                         vTaskDelay(100);
                     }
@@ -231,6 +237,11 @@ void main_task(void *parameter) {
                     printf("ADC raw ");
                     for (int t = 0; t < 15; t++) {
                         printf("%02d:%04d   ", t, ADC[t]);
+                    }
+                    printf("\r\n");
+                    printf("ADC mV  ");
+                    for (int t = 0; t < 15; t++) {
+                        printf("%02d:%05.2f  ", t, (float)(scaleX(ADC_256[t])) / 10000);
                     }
                     printf("\r\n");
                 }
@@ -346,6 +357,9 @@ void main_task(void *parameter) {
                         ESP_LOGI(TAG, "speedpump   %03.02f", Pump.speedpump);
                         xSemaphoreGive(xSemaphoreSTR);
                     }
+                    ESP_LOGI(TAG, "P5 Press Low %03.1f Barr", PressLow);
+                    ESP_LOGI(TAG, "P5 Press Hi  %03.1f Barr", PressHigh);
+                    
                     printf("Port nr ");
                     for (int t = 0; t < 15; t++) {
                         printf("P%02d cnt   ", t + 1);
@@ -358,7 +372,7 @@ void main_task(void *parameter) {
                     printf("\r\n");
                     printf("ADC mV  ");
                     for (int t = 0; t < 15; t++) {
-                        printf("%02d:%05.2f  ", t,(float)(scaleX(ADC_256[t]))/10000);
+                        printf("%02d:%05.2f  ", t, (float)(scaleX(ADC_256[t])) / 10000);
                     }
                     printf("\r\n");
                 }

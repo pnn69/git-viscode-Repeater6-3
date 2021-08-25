@@ -190,8 +190,8 @@ void i2c_task(void *arg) {
                 // t = map(ADC[adc_select], 334, 3195, 0, 2.485);
                 t = (float)scaleX(ADC_256[adc_select]) / 10000;
                 // ESP_LOGI(TAG, "P%02d %.2fV ", adc_select + 1, t);
-                WaterAlarm = (t < 2.0 )? true : false;
-                //ESP_LOGI(TAG, "%s t=%04.2f", (WaterAlarm == 1) ? "Alarm" : "no Alarm",t);
+                WaterAlarm = (t < 2.0) ? true : false;
+                // ESP_LOGI(TAG, "%s t=%04.2f", (WaterAlarm == 1) ? "Alarm" : "no Alarm",t);
                 break;
 
             case 3: // p4 Day/Night detection
@@ -202,7 +202,8 @@ void i2c_task(void *arg) {
                 break;
 
             case 4: // p5 Plow
-                t = map(ADC[adc_select], 334, 3195, 0, 12);
+                t = map(ADC[adc_select], 353, 1553, 0, 5);
+                //ESP_LOGI(TAG, "VP5  %.2f", t);
                 if (t > 0.5) {
                     PressLow = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
                 } else {
@@ -212,7 +213,8 @@ void i2c_task(void *arg) {
                 break;
 
             case 5: // p6 Phigh
-                t = map(ADC[adc_select], 334, 3195, 0, 12);
+                t = map(ADC[adc_select], 353, 1553, 0, 5);
+                //ESP_LOGI(TAG, "VP5  %.2f", t);
                 if (t > 0.5) {
                     PressHigh = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
                 } else {
