@@ -32,7 +32,7 @@
 #include "sdkconfig.h"
 #include "struckt.h"
 
-#define HW_VERSION "6/3V1.0A"
+#define HW_VERSION "6/3V1.1aUSB"
 #define SW_VERSION "1.2"
 
 #define ZerroCrossPin 35
@@ -50,7 +50,10 @@
 #define ledFan 0          // pos led Fan IO extender
 #define ledRH 1           // pos led RH IO extender
 #define ledHeater 2       // pos led Heater IO extender
-#define ledESP GPIO_NUM_2 // Led mounted on pcb at pin GPIO2
+
+#define ThyristroON 1
+#define BuzzerOn 0
+#define LedIO 7
 
 #define AC_pin1 32 // Output to Opto Triac1
 #define AC_pin2 33 // Output to Opto Triac2
@@ -96,7 +99,7 @@ extern int menuPos[3];
 extern SemaphoreHandle_t xSemaphoreNTC;
 extern SemaphoreHandle_t xSemaphoreSTR;
 extern SemaphoreHandle_t xSemaphoreVIN;
-
+extern bool approx;
 TimerHandle_t tmr;
 
 #endif /* GLOBAL_H_ */

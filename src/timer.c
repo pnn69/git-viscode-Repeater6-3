@@ -209,7 +209,7 @@ void init_zerocross(void) {
     io_conf.pull_up_en = (gpio_pullup_t)0;
     gpio_config(&io_conf);
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    gpio_isr_handler_add((gpio_num_t)ZerroCrossPin, ZerroCrossISR, (void *)ZerroCrossPin);
+    gpio_isr_handler_add(ZerroCrossPin, ZerroCrossISR, (void *)ZerroCrossPin);
     PeriodTimePrev = 0;
 }
 /*
@@ -245,15 +245,15 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
             lstcnt = (pRes + nRes) / 2;
 
             if (enableOutput == false) {
-                gpio_set_level((gpio_num_t)AC_pin1, 1);
-                gpio_set_level((gpio_num_t)AC_pin2, 1);
-                gpio_set_level((gpio_num_t)AC_pin3, 1);
+                gpio_set_level(AC_pin1, !ThyristroON);
+                gpio_set_level(AC_pin2, !ThyristroON);
+                gpio_set_level(AC_pin3, !ThyristroON);
                 TIMERG0.hw_timer[0].config.alarm_en = 0;
             } else {
                 if (dim1 > 0) {
                     executeChnn[0] = (uint16_t)DimMap(dim1, 1000, 0, offsetcorrection, 1000 - treshold) + skew;
                 } else {
-                    gpio_set_level((gpio_num_t)AC_pin1, 1);
+                    gpio_set_level(AC_pin1, !ThyristroON);
                     executeChnn[0] = PULSE_OFF;
                 }
                 channel[0] = AC_pin1;
@@ -263,11 +263,11 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
                     //          1000 - treshold + skew);
                     executeChnn[1] = PULSE_OFF;
                     if (dim2 > 500)
-                        gpio_set_level((gpio_num_t)AC_pin2, 0);
+                        gpio_set_level(AC_pin2, ThyristroON);
                     else
-                        gpio_set_level((gpio_num_t)AC_pin2, 1);
+                        gpio_set_level(AC_pin2, !ThyristroON);
                 } else {
-                    gpio_set_level((gpio_num_t)AC_pin2, 1);
+                    gpio_set_level(AC_pin2, !ThyristroON);
                     executeChnn[1] = PULSE_OFF;
                 }
                 channel[1] = AC_pin2;
@@ -277,11 +277,11 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
                     // treshold + skew);
                     executeChnn[2] = PULSE_OFF;
                     if (dim3 > 500)
-                        gpio_set_level((gpio_num_t)AC_pin3, 0);
+                        gpio_set_level(AC_pin3, !ThyristroON);
                     else
-                        gpio_set_level((gpio_num_t)AC_pin3, 1);
+                        gpio_set_level(AC_pin3, !ThyristroON);
                 } else {
-                    gpio_set_level((gpio_num_t)AC_pin3, 1);
+                    gpio_set_level(AC_pin3, !ThyristroON);
                     executeChnn[2] = PULSE_OFF;
                 }
                 channel[2] = AC_pin3;
@@ -327,12 +327,12 @@ void IRAM_ATTR timer_isr_1(void *para) {
     if (next == nchannel) {
         next = next - nchannel;
     }
-    gpio_set_level((gpio_num_t)channel[next], 0);
+    gpio_set_level(channel[next], ThyristroON);
     // timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &timerstamp);
     // Delay 10 us
     wait = esp_timer_get_time();
     while (wait + 50 > esp_timer_get_time());
-    gpio_set_level((gpio_num_t)channel[next], 1);
+    gpio_set_level(channel[next], !ThyristroON);
 
     next = 0;
     switch (loopcnt) {
@@ -411,14 +411,14 @@ int init_timer(uint16_t set) {
     }
     ESP_LOGI(TAG, "Measured %dHz", set);
     gpio_pad_select_gpio(AC_pin1);
-    gpio_set_direction((gpio_num_t)AC_pin1, GPIO_MODE_OUTPUT);
-    gpio_set_level((gpio_num_t)AC_pin1, 1);
+    gpio_set_direction(AC_pin1, GPIO_MODE_OUTPUT);
+    gpio_set_level(AC_pin1, !ThyristroON);
     gpio_pad_select_gpio(AC_pin2);
-    gpio_set_direction((gpio_num_t)AC_pin2, GPIO_MODE_OUTPUT);
-    gpio_set_level((gpio_num_t)AC_pin2, 1);
+    gpio_set_direction(AC_pin2, GPIO_MODE_OUTPUT);
+    gpio_set_level(AC_pin2, !ThyristroON);
     gpio_pad_select_gpio(AC_pin3);
-    gpio_set_direction((gpio_num_t)AC_pin3, GPIO_MODE_OUTPUT);
-    gpio_set_level((gpio_num_t)AC_pin3, 1);
+    gpio_set_direction(AC_pin3, GPIO_MODE_OUTPUT);
+    gpio_set_level(AC_pin3, !ThyristroON);
 
     // timer_spinlock_take(TIMER_GROUP_0);
     timer_config_t config = {.alarm_en = TIMER_ALARM_DIS, .counter_en = TIMER_PAUSE, .intr_type = TIMER_INTR_LEVEL, .counter_dir = TIMER_COUNT_UP, .auto_reload = TIMER_AUTORELOAD_EN, .divider = 800};

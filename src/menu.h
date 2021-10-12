@@ -7,7 +7,7 @@
 
 #ifndef MAIN_MENU_H_
 #define MAIN_MENU_H_
-
+void OLED_Show_Version_number(void);
 void OLED_infoScreen();
 void OLED_homeScreen();
 void OLED_UnlockScreen(int inp);

@@ -51,7 +51,6 @@ float datalog = 0;
 
 void main_task(void *parameter) {
     ESP_LOGI("Main", "Smartbox HW:%s SW:%s NVM:%d", HW_VERSION, SW_VERSION, NVM_VERSION);
-    OLED_homeScreen();
     TickType_t secstamp = xTaskGetTickCount();
     vTaskDelay(150);
     enableOutput = true;
@@ -60,9 +59,8 @@ void main_task(void *parameter) {
 
     while (1) {
         if (last_approx != approx) {
-            // ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
+            //ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
             last_approx = approx;
-            gpio_set_level(ledESP, !approx);
         }
 
         switch (mode) {
@@ -75,6 +73,7 @@ void main_task(void *parameter) {
                 secstamp = xTaskGetTickCount();
                 if (lastkey == 'l' || lastkey == 'L') {
                     ESP_LOGI(TAG, "ADC RAW %d %d %d %d %d %d %d %d", ADC[0], ADC[1], ADC[2], ADC[3], ADC[4], ADC[5], ADC[6], ADC[7]);
+                    ESP_LOGI(TAG, "Approx:%s ", (approx == 1) ? "Movement" : "no movment");
                 }
                 // ESP_LOGI(TAG,"T0:%d[%3d,%03d,%03d] T1:%d[%3d,%03d,%03d]
                 // T2:%d[%3d,%03d,%03d] Approx:%d Sec", T0,TF0,R0,TF0-R0,T1,
@@ -359,7 +358,7 @@ void main_task(void *parameter) {
                     }
                     ESP_LOGI(TAG, "P5 Press Low %03.1f Barr", PressLow);
                     ESP_LOGI(TAG, "P5 Press Hi  %03.1f Barr", PressHigh);
-                    
+
                     printf("Port nr ");
                     for (int t = 0; t < 15; t++) {
                         printf("P%02d cnt   ", t + 1);
@@ -606,10 +605,12 @@ void app_main() {
     adc_config();
     init_zerocross(); // set up zero cross detection
     vTaskDelay(100);
-    init_timer(lstcnt); // start timer
+    if (lstcnt > 100) {
+        init_timer(lstcnt); // start timer
+    } else {
+        ESP_LOGI(TAG, "No AC manis detected! cnts=%d  ", lstcnt);
+    }
     xTaskCreate(RS487_task, "RS487_task", 2024 * 2, NULL, 5, NULL);
-    gpio_pad_select_gpio(ledESP);
-    gpio_set_direction(ledESP, GPIO_MODE_OUTPUT);
     ESP_LOGI(TAG, "Setup done!");
     xTaskCreate(main_task, "main_task", 2024, NULL, 0, NULL);
 }

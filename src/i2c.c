@@ -62,7 +62,7 @@ uint8_t i2c_read_device(uint8_t addres) {
     i2c_master_write_byte(cmd, (addres << 1) | READ_BIT, ACK_CHECK_EN);
     i2c_master_read_byte(cmd, &data, ACK_CHECK_DIS);
     i2c_master_stop(cmd);
-    i2c_master_cmd_begin(I2C_PORT_NUM, cmd, 1 / portTICK_RATE_MS);
+    i2c_master_cmd_begin(I2C_PORT_NUM, cmd, 0);
     i2c_cmd_link_delete(cmd);
     return data;
 }
@@ -77,16 +77,16 @@ void i2c_write_device(uint8_t addres, uint8_t data) {
     i2c_cmd_link_delete(cmd);
 }
 
-static void i2cblink(void) {
-    int IOstatus = 0;
-    bool led;
-    IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
-    led = (bool)(IOstatus & (1UL << 7)); // get IO status
-    led = !led;
-    IOstatus = IOstatus & 0x3F;
-    IOstatus ^= (-led ^ IOstatus) & (1UL << 7);            // Changing the nth bit to x
-    i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
-}
+// static void i2cblink(void) {
+//    int IOstatus = 0;
+//    bool led;
+//    IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
+//    led = (bool)(IOstatus & (1UL << 7)); // get IO status
+//    led = !led;
+//    IOstatus = IOstatus & 0x3F;
+//    IOstatus ^= (-led ^ IOstatus) & (1UL << 7);            // Changing the nth bit to x
+//    i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
+//}
 
 void i2cscanner(void) {
     ESP_LOGD(TAG, ">> i2cScanner");
@@ -124,6 +124,7 @@ void i2cscanner(void) {
 
 static uint8_t IOstatus = 0;
 static uint8_t adc_select = 0;
+static bool led = 0;
 void i2c_task(void *arg) {
     TickType_t timestamp = xTaskGetTickCount();
     TickType_t adcstamp = xTaskGetTickCount();
@@ -137,15 +138,17 @@ void i2c_task(void *arg) {
     adc_select = 0;
 
     IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
-    IOstatus ^= (-!1 ^ IOstatus) & (1UL << buzzer);        // Changing the nth bit to x
+    IOstatus ^= (-BuzzerOn ^ IOstatus) & (1UL << buzzer);  // Changing the nth bit to x
     i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // updat leds
-    IOstatus ^= (-!0 ^ IOstatus) & (1UL << buzzer);        // Buzzer off
+    IOstatus ^= (-!BuzzerOn ^ IOstatus) & (1UL << buzzer); // Buzzer off
     i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // updat leds
     ssd1306_init();
     ssd1306_display_clear();
+
     // IOstatus = 0xff; All inputs Voltage
     // IOstatus = 0x00; All inputs NTC
     IOstatus = 0x0F;                                       // chnn 1 2 3 4 pull down enabled
+    IOstatus ^= (-!BuzzerOn ^ IOstatus) & (1UL << buzzer); // Buzzer off
     i2c_write_device(I2C0_EXPANDER_ADDRESS_NTC, IOstatus); // update IO extender
     aproxtimer = 600;
 
@@ -155,11 +158,12 @@ void i2c_task(void *arg) {
     int res = 0;
 
     calibrateScaleX(88992, 437536);
+    ssd1306_display_clear();
 
     for (;;) {
         // i2cblink();
         if (adcstamp + pdMS_TO_TICKS(100) < xTaskGetTickCount()) {
-            i2cblink();
+            // i2cblink();
             ADC[adc_select] = AdcSampRaw();
             ADC_256[adc_select] = read_adc_256();
             switch (adc_select) {
@@ -203,7 +207,7 @@ void i2c_task(void *arg) {
 
             case 4: // p5 Plow
                 t = map(ADC[adc_select], 353, 1553, 0, 5);
-                //ESP_LOGI(TAG, "VP5  %.2f", t);
+                // ESP_LOGI(TAG, "VP5  %.2f", t);
                 if (t > 0.5) {
                     PressLow = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
                 } else {
@@ -214,7 +218,7 @@ void i2c_task(void *arg) {
 
             case 5: // p6 Phigh
                 t = map(ADC[adc_select], 353, 1553, 0, 5);
-                //ESP_LOGI(TAG, "VP5  %.2f", t);
+                // ESP_LOGI(TAG, "VP5  %.2f", t);
                 if (t > 0.5) {
                     PressHigh = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
                 } else {
@@ -259,23 +263,26 @@ void i2c_task(void *arg) {
             }
             if (adc_select++ >= 14) // next mux position
                 adc_select = 0;
-            if (adc_select == 6) // skip nodt used inputs
+            else if (adc_select == 6) // skip nodt used inputs
                 adc_select = 8;
-            if (adc_select == 7)
+            else if (adc_select == 7)
                 adc_select++;
-            if (adc_select == 11)
+            else if (adc_select == 11)
                 adc_select = 13;
-            if (adc_select == 12)
+            else if (adc_select == 12)
                 adc_select++;
 
-            IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
-            IOstatus = IOstatus & 0xc0;
-            IOstatus = IOstatus | (ADCadress[adc_select]);         // set mux to selected channel
+            IOstatus = 0;
+            // IOstatus = IOstatus & 0xc0;
+            IOstatus = IOstatus | (ADCadress[adc_select]);  // set mux to selected channel
+            IOstatus ^= (-led ^ IOstatus) & (1UL << LedIO); // Changing the nth bit to x
+            led = !led;
             i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // update IO extender
             adcstamp = xTaskGetTickCount();
         }
 
         if (timestamp + pdMS_TO_TICKS(250) < xTaskGetTickCount()) {
+            // if (timestamp + pdMS_TO_TICKS(25000) < xTaskGetTickCount()) {
             timestamp = xTaskGetTickCount();
             if (dim1)
                 statFan = true;
@@ -304,6 +311,7 @@ void i2c_task(void *arg) {
                 IOstatus ^= (-!0 ^ IOstatus) & (1UL << POS_KEY1);           // Set bit KEY1
                 IOstatus ^= (-!0 ^ IOstatus) & (1UL << POS_KEY2);           // Set bit KEY2
                 i2c_write_device(I2C0_EXPANDER_ADDRESS_KEY, IOstatus);      // update IO extender
+
                 if (approx == true)
                     aproxtimer = 60;
 
@@ -324,15 +332,14 @@ void i2c_task(void *arg) {
 
                 if ((key0 || key1 || key2)) {
                     if (buzzerOnOff) {
-                        IOstatus = i2c_read_device(I2C0_EXPANDER_ADDRESS_MUX);
-                        IOstatus ^= (-!1 ^ IOstatus) & (1UL << buzzer);        // Changing the nth bit to x
+                        IOstatus = IOstatus | (ADCadress[adc_select]);         // set mux to selected channel
+                        IOstatus ^= (-BuzzerOn ^ IOstatus) & (1UL << buzzer);  // Changing the nth bit to x
                         i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // updat leds
-                        IOstatus ^= (-!0 ^ IOstatus) & (1UL << buzzer);        // Buzzer off
+                        IOstatus ^= (-!BuzzerOn ^ IOstatus) & (1UL << buzzer); // Buzzer off
                         i2c_write_device(I2C0_EXPANDER_ADDRESS_MUX, IOstatus); // updat leds
                     }
                 }
             }
-
             if (dispayOnOff && FrontOled) {
                 if ((key0 || key1 || key2)) {
                     if (key0) {
@@ -369,23 +376,29 @@ void i2c_task(void *arg) {
                             LCD_menu_4(ENTER);
                     }
                 } else {
-                    if (mode == modeHumidifier)
-                        LCD_menu_1(0);
-                    else if (mode == modeFanAuxBoxRetro)
-                        LCD_menu_2(0);
-                    else if (mode == modeFanPumpController)
-                        LCD_menu_3(0);
-                    else if (mode == modeFanPumpBoxRetro)
-                        LCD_menu_4(0);
+                    if (400 > xTaskGetTickCount()) {
+                        OLED_Show_Version_number();
+                    } else {
+
+                        if (mode == modeHumidifier)
+                            LCD_menu_1(0);
+                        else if (mode == modeFanAuxBoxRetro)
+                            LCD_menu_2(0);
+                        else if (mode == modeFanPumpController)
+                            LCD_menu_3(0);
+                        else if (mode == modeFanPumpBoxRetro)
+                            LCD_menu_4(0);
+                    }
                 }
             }
+
+            if ((key0 || key1 || key2)) {
+                vTaskDelay(9);
+                key0 = 0;
+                key1 = 0;
+                key2 = 0;
+            }
         }
-        if ((key0 || key1 || key2)) {
-            vTaskDelay(9);
-            key0 = 0;
-            key1 = 0;
-            key2 = 0;
-        }
-        vTaskDelay(1);
     }
+    vTaskDelay(1);
 }
