@@ -375,6 +375,7 @@ void i2c_task(void *arg) {
                         else if (mode == modeFanPumpBoxRetro)
                             LCD_menu_4(ENTER);
                     }
+
                 } else {
                     if (400 > xTaskGetTickCount()) {
                         OLED_Show_Version_number();
