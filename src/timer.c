@@ -25,9 +25,9 @@ volatile DRAM_ATTR int64_t PeriodTime, PeriodTimePrev = 0;
 static DRAM_ATTR volatile uint64_t samp, psamp, halfperiod, skew = 0;
 static DRAM_ATTR volatile int16_t nRes, pRes, offsetcorrection = 0;
 volatile DRAM_ATTR int16_t lstcnt, period;
-static DRAM_ATTR const int nchannel = 3;
-static DRAM_ATTR const int treshold = 100; // tyristor triggers not at low voltages so limit range
-static DRAM_ATTR const int ZerrCrossDelay = 120; //Zerro cross detected before real crossing due led voltage +-1,6V
+// static DRAM_ATTR const int nchannel = 3;
+// static DRAM_ATTR const int treshold = 100;       // tyristor triggers not at low voltages so limit range
+// static DRAM_ATTR const int ZerrCrossDelay = 120; // Zerro cross detected before real crossing due led voltage +-1,6V
 static volatile uint16_t executeChnn[3];
 static volatile int channel[3];
 static DRAM_ATTR volatile int loopcnt;
@@ -203,7 +203,8 @@ int IRAM_ATTR nextValneg(int curr, int max) {
 void init_zerocross(void) {
     gpio_config_t io_conf;
     // io_conf.intr_type = GPIO_INTR_ANYEDGE;
-    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    // io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    io_conf.intr_type = GPIO_INTR_POSEDGE;
     io_conf.pin_bit_mask = (1ULL << ZerroCrossPin);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = (gpio_pullup_t)0;
@@ -220,7 +221,10 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
     uint32_t gpio_num = (uint32_t)arg;
     if (gpio_num == ZerroCrossPin) {
         portENTER_CRITICAL(&mux); // used in int handler
-        if (esp_timer_get_time() - samp > 8500) {
+        if (!gpio_get_level(ZerroCrossPin)) {
+            portEXIT_CRITICAL_ISR(&mux);
+            return;
+        }
             halfperiod = samp;
             samp = esp_timer_get_time();
             PeriodTime = samp - halfperiod;
@@ -243,6 +247,7 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
             }
 
             lstcnt = (pRes + nRes) / 2;
+            gpio_set_level(AC_pin1, !ThyristroON);
 
             if (enableOutput == false) {
                 gpio_set_level(AC_pin1, !ThyristroON);
@@ -251,66 +256,34 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
                 TIMERG0.hw_timer[0].config.alarm_en = 0;
             } else {
                 if (dim1 > 0) {
-                    executeChnn[0] = (uint16_t)DimMap(dim1, 1000, 0, offsetcorrection, 1000 - treshold) + skew;
+                    executeChnn[0] = (uint16_t)DimMap(dim1, 1000, 0, 0, 950); // input,max out,min out,scale min,scale max)
                 } else {
                     gpio_set_level(AC_pin1, !ThyristroON);
                     executeChnn[0] = PULSE_OFF;
                 }
                 channel[0] = AC_pin1;
 
-                if (dim2 != 0) {
-                    //          executeChnn[1] = DimMap(dim2, 1000, 0, offsetcorrection,
-                    //          1000 - treshold + skew);
-                    executeChnn[1] = PULSE_OFF;
-                    if (dim2 > 500)
-                        gpio_set_level(AC_pin2, ThyristroON);
-                    else
-                        gpio_set_level(AC_pin2, !ThyristroON);
+                if (dim2 > 500) {
+                    gpio_set_level(AC_pin2, ThyristroON);
                 } else {
                     gpio_set_level(AC_pin2, !ThyristroON);
-                    executeChnn[1] = PULSE_OFF;
                 }
-                channel[1] = AC_pin2;
-
-                if (dim3 != 0) {
-                    // executeChnn[2] = DimMap(dim3, 1000, 0, offsetcorrection, 1000 -
-                    // treshold + skew);
-                    executeChnn[2] = PULSE_OFF;
-                    if (dim3 > 500)
-                        gpio_set_level(AC_pin3, !ThyristroON);
-                    else
-                        gpio_set_level(AC_pin3, !ThyristroON);
+                if (dim3 > 500) {
+                    gpio_set_level(AC_pin3, ThyristroON);
                 } else {
                     gpio_set_level(AC_pin3, !ThyristroON);
-                    executeChnn[2] = PULSE_OFF;
                 }
-                channel[2] = AC_pin3;
-                /*
-                        for (int ch = 0; ch < nchannel - 1;
-                             ch++) {  // bubble sort by time, PULSE_OFF is always biggest
-                          for (int ch = 0; ch < nchannel - 1; ch++) {
-                            if (executeChnn[ch] > executeChnn[ch + 1]) {
-                              uint16_t tmp0 = executeChnn[ch];
-                              executeChnn[ch] = executeChnn[ch + 1];
-                              executeChnn[ch + 1] = tmp0;
 
-                              int tmp1 = channel[ch];
-                              channel[ch] = channel[ch + 1];
-                              channel[ch + 1] = tmp1;
-                            }
-                          }
-                        }
-                */
                 loopcnt = 0;
                 if (executeChnn[loopcnt] < PULSE_OFF) {
                     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0x00000000ULL);
-                    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, executeChnn[loopcnt]+ZerrCrossDelay);
+                    // timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, executeChnn[loopcnt] + ZerrCrossDelay);
+                    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, executeChnn[loopcnt]);
                     TIMERG0.hw_timer[0].config.alarm_en = 1;
                 } else {
                     TIMERG0.hw_timer[0].config.alarm_en = 0;
                 }
             }
-        }
         portEXIT_CRITICAL_ISR(&mux);
     }
 }
@@ -323,57 +296,20 @@ void IRAM_ATTR timer_isr_1(void *para) {
     TIMERG0.int_clr_timers.t0 = 1;
     timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &timerstamp);
     portENTER_CRITICAL_ISR(&mux);
-    next = loopcnt;
-    if (next == nchannel) {
-        next = next - nchannel;
-    }
-    gpio_set_level(channel[next], ThyristroON);
-    // timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &timerstamp);
+    gpio_set_level(AC_pin1, ThyristroON);
     // Delay 10 us
     wait = esp_timer_get_time();
-    while (wait + 50 > esp_timer_get_time());
-    gpio_set_level(channel[next], !ThyristroON);
-
-    next = 0;
+    while (wait + 50 > esp_timer_get_time())
+        ;
+    if(dim1 < 1000) { 
+        gpio_set_level(AC_pin1, !ThyristroON); 
+    }
     switch (loopcnt) {
     case 0:
         next = 1000;
-        loopcnt = 3;
-
-        //      if (executeChnn[1] < PULSE_OFF) {
-        //        next = executeChnn[1] - executeChnn[0];
-        //        loopcnt = 1;
-        //      } else {
-        //        next = 1000;
-        //        loopcnt = 3;
-        //      }
         break;
     case 1:
-        if (executeChnn[2] < PULSE_OFF) {
-            next = executeChnn[2] - executeChnn[1];
-            loopcnt = 2;
-        } else {
-            next = 1000 + executeChnn[0];
-            loopcnt = 3;
-        }
-        break;
-    case 2:
-        next = 1000 + executeChnn[0];
-        loopcnt = 3;
-        break;
-
-    case 3:
         next = 0;
-        // if (executeChnn[1] < PULSE_OFF) {
-        // next = executeChnn[1] - executeChnn[0];
-        // loopcnt = 4;
-        //}
-        break;
-    case 4:
-        if (executeChnn[2] < PULSE_OFF) {
-            next = executeChnn[2] - executeChnn[1];
-            loopcnt = 5;
-        }
         break;
     default:
         TIMERG0.hw_timer[0].config.alarm_en = 0;
@@ -397,7 +333,7 @@ void IRAM_ATTR timer_isr_1(void *para) {
 int init_timer(uint16_t set) {
     uint16_t div = 0;
     ESP_LOGI(TAG, "Counter %d", set);
-    set = 1000000/set;
+    set = 1000000 / set;
     ESP_LOGI(TAG, "Detected: %dHz", set);
     if (set <= 55 && set >= 45) {
         div = 1000;
