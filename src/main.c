@@ -175,7 +175,7 @@ void main_task(void *parameter) {
 
         case modeFanAuxBoxRetro:
             if (xSemaphoreTake(xSemaphoreVIN, 10 == pdTRUE)) {
-                if (secstamp + OneSec / 100 <= xTaskGetTickCount()) {
+                if (secstamp + OneSec / 10 <= xTaskGetTickCount()) {
                     secstamp = xTaskGetTickCount();
                     voltage = (int)(voltageFAN * 100);
                     // voltage = pwr_to_time(voltage) * 1000 / 4096;  // scale power
@@ -184,6 +184,7 @@ void main_task(void *parameter) {
                     if (voltage < 0)
                         voltage = 0;
                     dim1 = 1000 - voltage;
+
                 }
                 if (voltageRH > 5.05) {
                     dim2 = 1000;

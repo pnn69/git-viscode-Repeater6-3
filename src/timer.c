@@ -20,6 +20,7 @@ volatile char tenth; // timing parameter
 volatile int dim1 = 0;
 volatile int dim2 = 0;
 volatile int dim3 = 0;
+static int dim1Act = 0;
 volatile DRAM_ATTR int64_t PeriodTime, PeriodTimePrev = 0;
 
 static DRAM_ATTR volatile uint64_t samp, psamp, halfperiod, skew = 0;
@@ -187,17 +188,12 @@ int32_t IRAM_ATTR DimMap(int32_t x, int32_t in_min, int32_t in_max, int32_t out_
     return x;
 }
 
-int IRAM_ATTR nextValneg(int curr, int max) {
-    if (1000 - max <= curr) {
-        if (1000 - max < 0) {
-            return 0;
-        }
-        return 1000 - max;
-    }
-    if (1000 - max - curr > 10) {
+int IRAM_ATTR nextValneg(int curr, int set) {
+    if (curr + 20 < set)
         return curr + 10;
-    }
-    return curr + 1;
+    if (curr + 1 < set)
+        return curr + 1;
+    return set;
 }
 
 void init_zerocross(void) {
@@ -256,8 +252,10 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
             TIMERG0.hw_timer[0].config.alarm_en = 0;
         } else {
             if (dim1 > 0) {
-                executeChnn[0] = (uint16_t)DimMap(dim1, 1000, 0, 0, 800); // input,max out,min out,scale min,scale max)
+                 dim1Act = nextValneg(dim1Act, dim1);
+                executeChnn[0] = (uint16_t)DimMap(dim1Act, 1000, 0, 0, 800); // input,max out,min out,scale min,scale max)
             } else {
+                dim1Act = 0;
                 gpio_set_level(AC_pin1, !ThyristroON);
                 executeChnn[0] = PULSE_OFF;
             }
@@ -301,7 +299,7 @@ void IRAM_ATTR timer_isr_1(void *para) {
     wait = esp_timer_get_time();
     while (wait + 50 > esp_timer_get_time())
         ;
-    if (dim1 < 1000) {
+    if (dim1Act < 1000) {
         gpio_set_level(AC_pin1, !ThyristroON);
     }
     switch (loopcnt) {
