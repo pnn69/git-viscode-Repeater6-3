@@ -202,9 +202,9 @@ int IRAM_ATTR nextValneg(int curr, int max) {
 
 void init_zerocross(void) {
     gpio_config_t io_conf;
-    // io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
     // io_conf.intr_type = GPIO_INTR_NEGEDGE;
-    io_conf.intr_type = GPIO_INTR_POSEDGE;
+    // io_conf.intr_type = GPIO_INTR_POSEDGE;
     io_conf.pin_bit_mask = (1ULL << ZerroCrossPin);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = (gpio_pullup_t)0;
@@ -225,65 +225,65 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
             portEXIT_CRITICAL_ISR(&mux);
             return;
         }
-            halfperiod = samp;
-            samp = esp_timer_get_time();
-            PeriodTime = samp - halfperiod;
-            OddEven = !OddEven;
-            if (OddEven) {
-                pRes = (int16_t)(samp - halfperiod);
-                period = ((int16_t)(samp - psamp)) / 2;
-                psamp = samp;
-                if (!OddEven)
-                    skew = offsetcorrection / 2;
-            } else {
-                nRes = (int16_t)(samp - halfperiod);
-                if (!OddEven)
-                    skew = offsetcorrection / 2;
-            }
-            if (pRes < nRes) {
-                offsetcorrection = (nRes - pRes) / 10;
-            } else {
-                offsetcorrection = (pRes - nRes) / 10;
-            }
+        halfperiod = samp;
+        samp = esp_timer_get_time();
+        PeriodTime = samp - halfperiod;
+        OddEven = !OddEven;
+        if (OddEven) {
+            pRes = (int16_t)(samp - halfperiod);
+            period = ((int16_t)(samp - psamp)) / 2;
+            psamp = samp;
+            if (!OddEven)
+                skew = offsetcorrection / 2;
+        } else {
+            nRes = (int16_t)(samp - halfperiod);
+            if (!OddEven)
+                skew = offsetcorrection / 2;
+        }
+        if (pRes < nRes) {
+            offsetcorrection = (nRes - pRes) / 10;
+        } else {
+            offsetcorrection = (pRes - nRes) / 10;
+        }
 
-            lstcnt = (pRes + nRes) / 2;
+        lstcnt = (pRes + nRes) / 2;
+        gpio_set_level(AC_pin1, !ThyristroON);
+
+        if (enableOutput == false) {
             gpio_set_level(AC_pin1, !ThyristroON);
-
-            if (enableOutput == false) {
-                gpio_set_level(AC_pin1, !ThyristroON);
-                gpio_set_level(AC_pin2, !ThyristroON);
-                gpio_set_level(AC_pin3, !ThyristroON);
-                TIMERG0.hw_timer[0].config.alarm_en = 0;
+            gpio_set_level(AC_pin2, !ThyristroON);
+            gpio_set_level(AC_pin3, !ThyristroON);
+            TIMERG0.hw_timer[0].config.alarm_en = 0;
+        } else {
+            if (dim1 > 0) {
+                executeChnn[0] = (uint16_t)DimMap(dim1, 1000, 0, 0, 800); // input,max out,min out,scale min,scale max)
             } else {
-                if (dim1 > 0) {
-                    executeChnn[0] = (uint16_t)DimMap(dim1, 1000, 0, 0, 950); // input,max out,min out,scale min,scale max)
-                } else {
-                    gpio_set_level(AC_pin1, !ThyristroON);
-                    executeChnn[0] = PULSE_OFF;
-                }
-                channel[0] = AC_pin1;
-
-                if (dim2 > 500) {
-                    gpio_set_level(AC_pin2, ThyristroON);
-                } else {
-                    gpio_set_level(AC_pin2, !ThyristroON);
-                }
-                if (dim3 > 500) {
-                    gpio_set_level(AC_pin3, ThyristroON);
-                } else {
-                    gpio_set_level(AC_pin3, !ThyristroON);
-                }
-
-                loopcnt = 0;
-                if (executeChnn[loopcnt] < PULSE_OFF) {
-                    timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0x00000000ULL);
-                    // timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, executeChnn[loopcnt] + ZerrCrossDelay);
-                    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, executeChnn[loopcnt]);
-                    TIMERG0.hw_timer[0].config.alarm_en = 1;
-                } else {
-                    TIMERG0.hw_timer[0].config.alarm_en = 0;
-                }
+                gpio_set_level(AC_pin1, !ThyristroON);
+                executeChnn[0] = PULSE_OFF;
             }
+            channel[0] = AC_pin1;
+
+            if (dim2 > 500) {
+                gpio_set_level(AC_pin2, ThyristroON);
+            } else {
+                gpio_set_level(AC_pin2, !ThyristroON);
+            }
+            if (dim3 > 500) {
+                gpio_set_level(AC_pin3, ThyristroON);
+            } else {
+                gpio_set_level(AC_pin3, !ThyristroON);
+            }
+
+            loopcnt = 0;
+            if (executeChnn[loopcnt] < PULSE_OFF) {
+                timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0x00000000ULL);
+                // timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, executeChnn[loopcnt] + ZerrCrossDelay);
+                timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, executeChnn[loopcnt]);
+                TIMERG0.hw_timer[0].config.alarm_en = 1;
+            } else {
+                TIMERG0.hw_timer[0].config.alarm_en = 0;
+            }
+        }
         portEXIT_CRITICAL_ISR(&mux);
     }
 }
@@ -301,8 +301,8 @@ void IRAM_ATTR timer_isr_1(void *para) {
     wait = esp_timer_get_time();
     while (wait + 50 > esp_timer_get_time())
         ;
-    if(dim1 < 1000) { 
-        gpio_set_level(AC_pin1, !ThyristroON); 
+    if (dim1 < 1000) {
+        gpio_set_level(AC_pin1, !ThyristroON);
     }
     switch (loopcnt) {
     case 0:
