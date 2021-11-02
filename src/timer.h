@@ -7,7 +7,7 @@
 #define TIMER_H_
 #include <stdbool.h>
 
-extern volatile int16_t lstcnt,period;
+extern volatile int16_t lstcnt, period;
 
 extern int dim1;
 extern int dim2;
@@ -16,8 +16,9 @@ extern bool statFan;
 extern bool statRH;
 extern bool statHeater;
 extern volatile DRAM_ATTR int64_t PeriodTime;
-float fan_calcPercentageToVoltage(float measP ); // percentage in voltage out
+float fan_calcPercentageToVoltage(float measP); // percentage in voltage out
 int IRAM_ATTR nextValneg(int curr, int max);
+void init_AC_io(void);
 void init_timer(int);
 void init_zerocross(void);
 int pwr_to_time(int pwr);

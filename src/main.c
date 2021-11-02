@@ -52,6 +52,7 @@ float datalog = 0;
 void main_task(void *parameter) {
     ESP_LOGI("Main", "Smartbox HW:%s SW:%s NVM:%d", HW_VERSION, SW_VERSION, NVM_VERSION);
     TickType_t secstamp = xTaskGetTickCount();
+    dim1 = 0;
     vTaskDelay(150);
     enableOutput = true;
     ESP_LOGI(TAG, "Main task running...");
@@ -59,7 +60,7 @@ void main_task(void *parameter) {
 
     while (1) {
         if (last_approx != approx) {
-            //ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
+            // ESP_LOGI(TAG, "Doppler: %s", (approx == 1) ? "Movement" : "no movment");
             last_approx = approx;
         }
 
@@ -184,7 +185,6 @@ void main_task(void *parameter) {
                     if (voltage < 0)
                         voltage = 0;
                     dim1 = 1000 - voltage;
-
                 }
                 if (voltageRH > 5.05) {
                     dim2 = 1000;
@@ -243,6 +243,7 @@ void main_task(void *parameter) {
                     for (int t = 0; t < 15; t++) {
                         printf("%02d:%05.2f  ", t, (float)(scaleX(ADC_256[t])) / 10000);
                     }
+                    printf("P3 %02.2f",VP3);
                     printf("\r\n");
                 }
 
@@ -500,13 +501,11 @@ void main_task(void *parameter) {
                 if (ch == '2') {
                     ESP_LOGI(TAG, "P1 RAW %04d  %0.2fV", ADC[0], ADC[0] * NVMsystem.NVMVgain / 1000);
                     ESP_LOGI(TAG, "P2 RAW %04d  %0.2fV", ADC[1], ADC[1] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "P3 RAW %04d  %0.2fV", ADC[2], ADC[2] * NVMsystem.NVMVgain / 1000);
+                    ESP_LOGI(TAG, "P3 RAW %04d  %0.2fV", ADC[2], VP3);
                     ESP_LOGI(TAG, "P4 RAW %04d  %0.2fV", ADC[3], ADC[3] * NVMsystem.NVMVgain / 1000);
                     ESP_LOGI(TAG, "P5 RAW %04d  %0.2fV", ADC[4], ADC[4] * NVMsystem.NVMVgain / 1000);
                     ESP_LOGI(TAG, "P6 RAW %04d  %0.2fV", ADC[5], ADC[5] * NVMsystem.NVMVgain / 1000);
-                    ESP_LOGI(TAG, "PR RAW %04d  %0.2fV", ADC[6], ADC[6] * NVMsystem.NVMVgain * VgainRJ12 / 1000);
-                    ESP_LOGI(TAG, "PH RAW %04d  %0.2fV", ADC[7], ADC[7] * NVMsystem.NVMVgain * VgainRJ12 / 1000);
-                    ESP_LOGI(TAG, "FANRAW %04d  %03.05fV ", ADC[8], voltageFAN);
+                    ESP_LOGI(TAG, "FANRAW %04d  %03.02fV ", ADC[8], voltageFAN);
                     ESP_LOGI(TAG, "RH RAW %04d  %03.02fV ", ADC[10], voltageRH);
                     ESP_LOGI(TAG, "HEATRAW %04d %03.02fV ", ADC[9], voltageHEAT);
                 }
@@ -536,6 +535,7 @@ void initSystemNVM(void) {
 }
 
 void app_main() {
+    init_AC_io();
     xSemaphoreNTC = xSemaphoreCreateMutex();
     xSemaphoreSTR = xSemaphoreCreateMutex();
     xSemaphoreVIN = xSemaphoreCreateMutex();

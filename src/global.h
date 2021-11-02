@@ -33,7 +33,7 @@
 #include "struckt.h"
 
 #define HW_VERSION "6/3V1.1aUSB"
-#define SW_VERSION "1.2"
+#define SW_VERSION "1.4"
 
 #define ZerroCrossPin 35
 
@@ -47,11 +47,11 @@
 #define POS_KEY1 (4)
 #define POS_KEY2 (3)
 
-#define ledFan 0          // pos led Fan IO extender
-#define ledRH 1           // pos led RH IO extender
-#define ledHeater 2       // pos led Heater IO extender
+#define ledFan 0    // pos led Fan IO extender
+#define ledRH 1     // pos led RH IO extender
+#define ledHeater 2 // pos led Heater IO extender
 
-#define ThyristroON 1
+#define ThyristorON 1
 #define BuzzerOn 0
 #define LedIO 7
 
@@ -87,6 +87,10 @@
 #define HiAnaCount10V 2760
 #define LoAnaCount12V 373
 #define HiAnaCount12V 3195
+#define HiAnaCount15V 3895
+#define LoAnaCount15V 337
+#define HiAnaCount5V 1515
+#define LoAnaCount5V 337
 
 #define ToutPos 1
 #define TinPos 0

@@ -26,7 +26,7 @@ int ADCadress[15][2] = {{ANL1adr, 1}, {ANL2adr, 1}, {ANL3adr, 0}, {ANL4adr, 0},
                         */
 int ADCadress[15] = {ANL1adr, ANL2adr, ANL3adr, ANL4adr, ANL5adr, ANL6adr, ANL7adr, ANL8adr, FANadr, TEMPadr, RHadr, OvREF, v125REF, OvREF1, v125REF1};
 int ADC_256[15];
-
+float VP1 = 0, VP2 = 0, VP3 = 0, VP4 = 0, VP5 = 0, VP6 = 0;
 extern bool buzzerOnOff;
 bool approx = false;
 int aproxtimer = 600;
@@ -147,7 +147,8 @@ void i2c_task(void *arg) {
 
     // IOstatus = 0xff; All inputs Voltage
     // IOstatus = 0x00; All inputs NTC
-    IOstatus = 0x0F;                                       // chnn 1 2 3 4 pull down enabled
+    IOstatus = 0x0F; // chnn 1 2 3 4 pull down enabled
+    // IOstatus = 0xfF;
     IOstatus ^= (-!BuzzerOn ^ IOstatus) & (1UL << buzzer); // Buzzer off
     i2c_write_device(I2C0_EXPANDER_ADDRESS_NTC, IOstatus); // update IO extender
     aproxtimer = 600;
@@ -192,35 +193,35 @@ void i2c_task(void *arg) {
 
             case 2: // p3 Waterleakage detection
                 // t = map(ADC[adc_select], 334, 3195, 0, 2.485);
-                t = (float)scaleX(ADC_256[adc_select]) / 10000;
-                // ESP_LOGI(TAG, "P%02d %.2fV ", adc_select + 1, t);
-                WaterAlarm = (t < 2.0) ? true : false;
-                // ESP_LOGI(TAG, "%s t=%04.2f", (WaterAlarm == 1) ? "Alarm" : "no Alarm",t);
+                VP3 = map(ADC[adc_select], LoAnaCount15V, HiAnaCount15V, 0, 15);
+                //ESP_LOGI(TAG, "P%02d %.2fV raw: %d", adc_select + 1, VP3, ADC[adc_select]);
+                WaterAlarm = (VP3 < 2.0) ? true : false;
+                // ESP_LOGI(TAG, "%s P3=%04.2f", (WaterAlarm == 1) ? "Alarm" : "no Alarm",VP3);
                 break;
 
             case 3: // p4 Day/Night detection
                 // t = map(ADC[adc_select], 334, 3195, 0, 2.485);
-                t = (float)scaleX(ADC_256[adc_select]) / 10000;
-                DayNight = t < 2.0 ? true : false;
-                // ESP_LOGI(TAG, "P%02d %.2fV %s", adc_select + 1, t, (DayNight == 1) ? "Day" : "Night");
+                VP4 = map(ADC[adc_select], LoAnaCount15V, HiAnaCount15V, 0, 15);
+                DayNight = VP4 < 2.0 ? true : false;
+                // ESP_LOGI(TAG, "P%02d %.2fV %s", adc_select + 1, P4, (DayNight == 1) ? "Day" : "Night");
                 break;
 
             case 4: // p5 Plow
-                t = map(ADC[adc_select], 353, 1553, 0, 5);
-                // ESP_LOGI(TAG, "VP5  %.2f", t);
-                if (t > 0.5) {
-                    PressLow = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
+                VP5 = map(ADC[adc_select], LoAnaCount15V, HiAnaCount5V, 0, 5);
+                // ESP_LOGI(TAG, "VP5  %.2f", VP5);
+                if (VP5 > 0.5) {
+                    PressLow = map(VP5, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
                 } else {
                     PressLow = NAN; // no pressure sensor mounted
                 }
-                // ESP_LOGI(TAG, "P%02d %.2fV PresLow %02.2f Barr", adc_select + 1, t, PressLow);
+                // ESP_LOGI(TAG, "P%02d %.2fV PresLow %02.2f Barr", adc_select + 1, VP5, PressLow);
                 break;
 
             case 5: // p6 Phigh
-                t = map(ADC[adc_select], 353, 1553, 0, 5);
-                // ESP_LOGI(TAG, "VP5  %.2f", t);
+                VP5 = map(ADC[adc_select], LoAnaCount15V, HiAnaCount5V, 0, 5);
+                // ESP_LOGI(TAG, "VP5  %.2f", VP5);
                 if (t > 0.5) {
-                    PressHigh = map(t, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
+                    PressHigh = map(VP5, 0.5, 4.5, 0, 10); // inp,Vmin,Vmax,Barrmin,Barrmax
                 } else {
                     PressHigh = NAN; // no pressure sensor mounted
                 }
@@ -266,11 +267,11 @@ void i2c_task(void *arg) {
             else if (adc_select == 6) // skip nodt used inputs
                 adc_select = 8;
             else if (adc_select == 7)
-                adc_select++;
+                adc_select = 8;
             else if (adc_select == 11)
                 adc_select = 13;
             else if (adc_select == 12)
-                adc_select++;
+                adc_select = 13;
 
             IOstatus = 0;
             // IOstatus = IOstatus & 0xc0;

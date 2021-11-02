@@ -112,7 +112,7 @@ void calibrateScaleX(int countl, int counth) {
     const float refh = (24950.0) / 2.0; // 1,25
     A = (refh - refl) / (counth - countl);
     B = refh - A * counth;
-    //ESP_LOGW(TAG, "Calibrate %d-%d A=%f, B=%f", countl, counth, A, B);
+    // ESP_LOGW(TAG, "Calibrate %d-%d A=%f, B=%f", countl, counth, A, B);
 }
 
 int scaleX(int avg) { return A * (float)avg + B; }

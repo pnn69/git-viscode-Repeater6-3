@@ -189,8 +189,13 @@ int32_t IRAM_ATTR DimMap(int32_t x, int32_t in_min, int32_t in_max, int32_t out_
 }
 
 int IRAM_ATTR nextValneg(int curr, int set) {
-    if (curr + 20 < set)
-        return curr + 10;
+    if (curr < 800) {
+        if (curr + 20 < set)
+            return curr + 10;
+    } else {
+        if (curr + 20 < set)
+            return curr + 1;
+    }
     if (curr + 1 < set)
         return curr + 1;
     return set;
@@ -243,33 +248,33 @@ void IRAM_ATTR ZerroCrossISR(void *arg) {
         }
 
         lstcnt = (pRes + nRes) / 2;
-        gpio_set_level(AC_pin1, !ThyristroON);
+        gpio_set_level(AC_pin1, !ThyristorON);
 
         if (enableOutput == false) {
-            gpio_set_level(AC_pin1, !ThyristroON);
-            gpio_set_level(AC_pin2, !ThyristroON);
-            gpio_set_level(AC_pin3, !ThyristroON);
+            gpio_set_level(AC_pin1, !ThyristorON);
+            gpio_set_level(AC_pin2, !ThyristorON);
+            gpio_set_level(AC_pin3, !ThyristorON);
             TIMERG0.hw_timer[0].config.alarm_en = 0;
         } else {
             if (dim1 > 0) {
-                 dim1Act = nextValneg(dim1Act, dim1);
+                dim1Act = nextValneg(dim1Act, dim1);
                 executeChnn[0] = (uint16_t)DimMap(dim1Act, 1000, 0, 0, 800); // input,max out,min out,scale min,scale max)
             } else {
                 dim1Act = 0;
-                gpio_set_level(AC_pin1, !ThyristroON);
+                gpio_set_level(AC_pin1, !ThyristorON);
                 executeChnn[0] = PULSE_OFF;
             }
             channel[0] = AC_pin1;
 
             if (dim2 > 500) {
-                gpio_set_level(AC_pin2, ThyristroON);
+                gpio_set_level(AC_pin2, ThyristorON);
             } else {
-                gpio_set_level(AC_pin2, !ThyristroON);
+                gpio_set_level(AC_pin2, !ThyristorON);
             }
             if (dim3 > 500) {
-                gpio_set_level(AC_pin3, ThyristroON);
+                gpio_set_level(AC_pin3, ThyristorON);
             } else {
-                gpio_set_level(AC_pin3, !ThyristroON);
+                gpio_set_level(AC_pin3, !ThyristorON);
             }
 
             loopcnt = 0;
@@ -294,13 +299,13 @@ void IRAM_ATTR timer_isr_1(void *para) {
     TIMERG0.int_clr_timers.t0 = 1;
     timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &timerstamp);
     portENTER_CRITICAL_ISR(&mux);
-    gpio_set_level(AC_pin1, ThyristroON);
+    gpio_set_level(AC_pin1, ThyristorON);
     // Delay 10 us
     wait = esp_timer_get_time();
     while (wait + 50 > esp_timer_get_time())
         ;
     if (dim1Act < 1000) {
-        gpio_set_level(AC_pin1, !ThyristroON);
+        gpio_set_level(AC_pin1, !ThyristorON);
     }
     switch (loopcnt) {
     case 0:
@@ -327,6 +332,18 @@ void IRAM_ATTR timer_isr_1(void *para) {
     100us interval at 50Hz
     83us  interval at 60Hz
 */
+void init_AC_io(void) {
+    gpio_pad_select_gpio(AC_pin1);
+    gpio_set_direction(AC_pin1, GPIO_MODE_OUTPUT);
+    gpio_set_level(AC_pin1, !ThyristorON);
+    gpio_pad_select_gpio(AC_pin2);
+    gpio_set_direction(AC_pin2, GPIO_MODE_OUTPUT);
+    gpio_set_level(AC_pin2, !ThyristorON);
+    gpio_pad_select_gpio(AC_pin3);
+    gpio_set_direction(AC_pin3, GPIO_MODE_OUTPUT);
+    gpio_set_level(AC_pin3, !ThyristorON);
+    ESP_LOGI(TAG, "Setup AC IO pins done!");
+}
 
 int init_timer(uint16_t set) {
     uint16_t div = 0;
@@ -344,15 +361,6 @@ int init_timer(uint16_t set) {
         div = 1000;
     }
     ESP_LOGI(TAG, "Measured %dHz", set);
-    gpio_pad_select_gpio(AC_pin1);
-    gpio_set_direction(AC_pin1, GPIO_MODE_OUTPUT);
-    gpio_set_level(AC_pin1, !ThyristroON);
-    gpio_pad_select_gpio(AC_pin2);
-    gpio_set_direction(AC_pin2, GPIO_MODE_OUTPUT);
-    gpio_set_level(AC_pin2, !ThyristroON);
-    gpio_pad_select_gpio(AC_pin3);
-    gpio_set_direction(AC_pin3, GPIO_MODE_OUTPUT);
-    gpio_set_level(AC_pin3, !ThyristroON);
 
     // timer_spinlock_take(TIMER_GROUP_0);
     timer_config_t config = {.alarm_en = TIMER_ALARM_DIS, .counter_en = TIMER_PAUSE, .intr_type = TIMER_INTR_LEVEL, .counter_dir = TIMER_COUNT_UP, .auto_reload = TIMER_AUTORELOAD_EN, .divider = 800};
